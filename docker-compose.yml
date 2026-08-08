@@ -1,0 +1,7 @@
+services:
+  enterprise-drishti-hub:
+    build: .
+    container_name: enterprise-drishti-hub-dashboard
+    ports:
+      - "8080:80"
+    restart: unless-stopped

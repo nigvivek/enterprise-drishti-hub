@@ -1,0 +1,49 @@
+import { connectAws } from "./aws.js";
+import { connectAzure } from "./azure.js";
+import { connectGcp } from "./gcp.js";
+import { connectIbm } from "./ibm.js";
+import { connectSnowflake } from "./snowflake.js";
+import { connectDatabricks } from "./databricks.js";
+
+const HANDLERS = {
+  aws: connectAws,
+  azure: connectAzure,
+  gcp: connectGcp,
+  ibm: connectIbm,
+  snowflake: connectSnowflake,
+  databricks: connectDatabricks,
+};
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
+}
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    if (url.pathname.startsWith("/api/connect/")) {
+      if (request.method !== "POST") return json({ ok: false, error: "POST required" }, 405);
+      const provider = url.pathname.split("/").pop();
+      const handler = HANDLERS[provider];
+      if (!handler) return json({ ok: false, error: `Unknown provider: ${provider}` }, 404);
+
+      let body;
+      try {
+        body = await request.json();
+      } catch {
+        return json({ ok: false, error: "Invalid JSON body" }, 400);
+      }
+
+      try {
+        const result = await handler(body);
+        return json(result, result.ok === false && !result.resources ? 400 : 200);
+      } catch (e) {
+        return json({ ok: false, error: e.message || "Connector failed" }, 500);
+      }
+    }
+
+    // Everything else: serve the built static app.
+    return env.ASSETS.fetch(request);
+  },
+};
