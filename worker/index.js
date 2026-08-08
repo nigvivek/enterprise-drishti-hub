@@ -4,6 +4,7 @@ import { connectGcp } from "./gcp.js";
 import { connectIbm } from "./ibm.js";
 import { connectSnowflake } from "./snowflake.js";
 import { connectDatabricks } from "./databricks.js";
+import { listTestimonials, submitTestimonial } from "./testimonials.js";
 
 const HANDLERS = {
   aws: connectAws,
@@ -21,6 +22,21 @@ function json(data, status = 200) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (url.pathname === "/api/testimonials") {
+      if (request.method === "GET") return listTestimonials(env);
+      if (request.method === "POST") {
+        let body;
+        try {
+          body = await request.json();
+        } catch {
+          return json({ ok: false, error: "Invalid JSON body" }, 400);
+        }
+        const clientIp = request.headers.get("CF-Connecting-IP");
+        return submitTestimonial(env, body, clientIp);
+      }
+      return json({ ok: false, error: "GET or POST required" }, 405);
+    }
 
     if (url.pathname.startsWith("/api/connect/")) {
       if (request.method !== "POST") return json({ ok: false, error: "POST required" }, 405);

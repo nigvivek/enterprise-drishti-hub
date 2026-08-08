@@ -159,7 +159,7 @@ function ConnectorCard({ def, connection, onConnect }) {
             </div>
           )}
           {error && <div style={{ fontSize: 11, color: T.red, background: T.redDim, borderRadius: 6, padding: "7px 9px" }}>{error}</div>}
-          <button type="submit" disabled={connecting} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#0A0E17", background: T.cyan, border: "none", borderRadius: 7, padding: "8px 12px", cursor: "pointer" }}>
+          <button type="submit" disabled={connecting} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#FFFFFF", background: T.cyan, border: "none", borderRadius: 7, padding: "8px 12px", cursor: "pointer" }}>
             {connecting ? <Loader2 size={13} className="spin" /> : <Check size={13} />} {connecting ? "Connecting…" : "Test & connect"}
           </button>
         </form>
@@ -240,8 +240,8 @@ export default function Workspace({ email, onLaunchDashboard, onSignedOut, onBac
       {/* Top bar */}
       <div style={{ borderBottom: `1px solid ${T.border}`, padding: "14px 28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <button onClick={onBackToSite} style={{ display: "flex", alignItems: "center", gap: 9, background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 7, background: `linear-gradient(135deg, ${T.amber}, ${T.cyan})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <ShieldCheck size={15} color="#0A0E17" />
+          <div style={{ width: 28, height: 28, borderRadius: 7, background: T.coral, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ShieldCheck size={15} color="#FFFFFF" />
           </div>
           <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 14.5 }}>Enterprise Drishti Hub</span>
         </button>
@@ -366,7 +366,7 @@ export default function Workspace({ email, onLaunchDashboard, onSignedOut, onBac
                   disabled={!selectedModules.length}
                   style={{
                     marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600,
-                    color: "#0A0E17", background: selectedModules.length ? T.amber : T.border, border: "none", borderRadius: 9,
+                    color: "#FFFFFF", background: selectedModules.length ? T.coral : T.border, border: "none", borderRadius: 9,
                     padding: "11px 18px", cursor: selectedModules.length ? "pointer" : "not-allowed",
                   }}
                 >

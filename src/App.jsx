@@ -1115,8 +1115,8 @@ export default function EnterpriseDrishtiHub({ onBack, enabledModuleIds }) {
       {/* Sidebar */}
       <div style={{ width: 258, borderRight: `1px solid ${T.border}`, padding: "22px 14px", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 10px", marginBottom: 26 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: `linear-gradient(135deg, ${T.amber}, ${T.cyan})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <ShieldCheck size={17} color="#0A0E17" />
+          <div style={{ width: 30, height: 30, borderRadius: 8, background: T.coral, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ShieldCheck size={17} color="#FFFFFF" />
           </div>
           <div>
             <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 14.5, lineHeight: 1.1 }}>Enterprise Drishti Hub</div>
@@ -1179,7 +1179,7 @@ export default function EnterpriseDrishtiHub({ onBack, enabledModuleIds }) {
               <span style={{ fontSize: 12, color: T.mutedDim }}>Search controls, regulations, evidence…</span>
             </div>
             <Bell size={16} color={T.mutedDim} />
-            <div style={{ width: 30, height: 30, borderRadius: 999, background: T.indigo, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 700, color: "#0A0E17" }}>JL</div>
+            <div style={{ width: 30, height: 30, borderRadius: 999, background: T.indigo, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11.5, fontWeight: 700, color: "#FFFFFF" }}>JL</div>
           </div>
         </div>
         <div style={{ padding: "22px 28px 40px" }}>{panels[tab]}</div>

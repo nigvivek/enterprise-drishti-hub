@@ -9,4 +9,14 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application"
   }
+
+  // To enable real, on-page testimonial storage: create a KV namespace
+  // (see TESTIMONIALS_SETUP.md), then uncomment and fill in the block below.
+  // Left out by default on purpose — an unconfigured/placeholder KV id here
+  // would fail at actual deploy time and break the whole site, not just
+  // testimonials.
+  //
+  // , "kv_namespaces": [
+  //     { "binding": "TESTIMONIALS", "id": "PASTE_YOUR_REAL_NAMESPACE_ID_HERE" }
+  //   ]
 }

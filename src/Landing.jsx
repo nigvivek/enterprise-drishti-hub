@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ShieldCheck, ScrollText, GitCompareArrows, ClipboardCheck, FileStack,
   LayoutDashboard, Radar as RadarIcon, ShieldAlert, Cloud, FileCheck2,
-  ArrowRight, Quote, Lock, Server, Globe, Check, X, Bug, Activity, MessageSquarePlus, Route,
+  ArrowRight, Quote, Lock, Server, Globe, Check, X, Bug, Activity, MessageSquarePlus, Route, Loader2,
 } from "lucide-react";
 import { T, FONT_IMPORT } from "./tokens.js";
 import DataLayerDiagram from "./DataLayerDiagram.jsx";
@@ -10,16 +10,16 @@ import DataLayerDiagram from "./DataLayerDiagram.jsx";
 const SALES_EMAIL = "nehatyagi.in@gmail.com";
 
 const MODULES = [
-  { icon: ScrollText, name: "Regulatory Change Intelligence", desc: "Every relevant regulatory change, filtered to what actually applies to your entities and jurisdictions." },
-  { icon: GitCompareArrows, name: "Compliance Impact Analysis", desc: "AI-proposed, human-approved mapping from regulatory change to the control it actually affects." },
-  { icon: ClipboardCheck, name: "Continuous Control Validation", desc: "Controls tested against live system state, not a once-a-year attestation." },
-  { icon: FileStack, name: "AI-Driven Audit Evidence", desc: "Hash-chained, tamper-evident evidence packages generated in minutes, signed by a human before export." },
-  { icon: LayoutDashboard, name: "Enterprise Compliance Dashboard", desc: "One posture score, drillable by framework, business unit, and jurisdiction." },
-  { icon: RadarIcon, name: "Predictive Regulatory Risk", desc: "Model-scored risk by topic, with the sample size and confidence shown — never a black box." },
-  { icon: ShieldAlert, name: "Cybersecurity Monitoring", desc: "Your existing SIEM/EDR signal, correlated to the control and obligation it puts at risk." },
-  { icon: Cloud, name: "Cloud Ecosystem Connect", desc: "Read-only, least-privilege connectors into AWS, GCP, Azure, and IBM Cloud." },
-  { icon: FileCheck2, name: "File Governance & Scan", desc: "Drop in a document, get an immediate read on sensitive data and which obligation it triggers." },
-  { icon: Route, name: "AI Gateway & Cost Governance", desc: "Routes every AI call across self-hosted and opt-in fallback models by cost, latency, and health — with full token and spend attribution for audit." },
+  { id: "regintel", module: "Module 1", icon: ScrollText, name: "Regulatory Change Intelligence", desc: "Every relevant regulatory change, filtered to what actually applies to your entities and jurisdictions." },
+  { id: "impact", module: "Module 2", icon: GitCompareArrows, name: "Compliance Impact Analysis", desc: "AI-proposed, human-approved mapping from regulatory change to the control it actually affects." },
+  { id: "controls", module: "Module 3", icon: ClipboardCheck, name: "Continuous Control Validation", desc: "Controls tested against live system state, not a once-a-year attestation." },
+  { id: "evidence", module: "Module 4", icon: FileStack, name: "AI-Driven Audit Evidence", desc: "Hash-chained, tamper-evident evidence packages generated in minutes, signed by a human before export." },
+  { id: "overview", module: "Module 5", icon: LayoutDashboard, name: "Enterprise Compliance Dashboard", desc: "One posture score, drillable by framework, business unit, and jurisdiction." },
+  { id: "predictive", module: "Module 6", icon: RadarIcon, name: "Predictive Regulatory Risk", desc: "Model-scored risk by topic, with the sample size and confidence shown — never a black box." },
+  { id: "cyber", module: "Module 7", icon: ShieldAlert, name: "Cybersecurity Monitoring", desc: "Your existing SIEM/EDR signal, correlated to the control and obligation it puts at risk." },
+  { id: "cloud", module: "Module 8", icon: Cloud, name: "Cloud Ecosystem Connect", desc: "Read-only, least-privilege connectors into AWS, GCP, Azure, and IBM Cloud." },
+  { id: "filegov", module: "Module 9", icon: FileCheck2, name: "File Governance & Scan", desc: "Drop in a document, get an immediate read on sensitive data and which obligation it triggers." },
+  { id: "gateway", module: "Module 10", icon: Route, name: "AI Gateway & Cost Governance", desc: "Routes every AI call across self-hosted and opt-in fallback models by cost, latency, and health — with full token and spend attribution for audit." },
 ];
 
 const TESTIMONIALS = [
@@ -161,7 +161,7 @@ function ContactModal({ plan, onClose }) {
               style={{ width: "100%", boxSizing: "border-box", background: T.panelAlt, border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 11px", color: T.text, fontSize: 13, fontFamily: "'Inter', sans-serif", resize: "vertical" }}
             />
           </div>
-          <button type="submit" style={{ marginTop: 6, fontSize: 13.5, fontWeight: 600, color: "#0A0E17", background: T.amber, border: "none", borderRadius: 9, padding: "11px 16px", cursor: "pointer" }}>
+          <button type="submit" style={{ marginTop: 6, fontSize: 13.5, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "11px 16px", cursor: "pointer" }}>
             Send to our team
           </button>
         </form>
@@ -170,12 +170,141 @@ function ContactModal({ plan, onClose }) {
   );
 }
 
-export default function LandingPage({ onLaunch }) {
+/* ---------------------------------------------------------------------- */
+/*  Testimonials — real on-page submit/list via the Worker + KV backend,   */
+/*  not a mailto: popup. Falls back to placeholder quotes if the backend   */
+/*  isn't configured yet (fresh deploys, before a KV namespace is set up). */
+/* ---------------------------------------------------------------------- */
+function TestimonialsSection() {
+  const [submitted, setSubmitted] = useState([]);
+  const [backendReady, setBackendReady] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", title: "", org: "", quote: "" });
+  const [status, setStatus] = useState("idle"); // idle | loading | error | done
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetch("/api/testimonials")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) {
+          setSubmitted(data.testimonials || []);
+          setBackendReady(true);
+        }
+      })
+      .catch(() => {}); // stay on placeholders if the backend isn't reachable/configured
+  }, []);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setStatus("loading");
+    setError("");
+    try {
+      const resp = await fetch("/api/testimonials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await resp.json();
+      if (!data.ok) {
+        setError(data.error || "Couldn't submit — try again in a moment.");
+        setStatus("error");
+        return;
+      }
+      setSubmitted((prev) => [data.testimonial, ...prev]);
+      setForm({ name: "", title: "", org: "", quote: "" });
+      setStatus("done");
+      setTimeout(() => { setShowForm(false); setStatus("idle"); }, 1800);
+    } catch (err) {
+      setError("Network error — try again.");
+      setStatus("error");
+    }
+  };
+
+  const display = backendReady && submitted.length ? submitted : backendReady ? [] : TESTIMONIALS;
+
+  return (
+    <div id="feedback" style={{ borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, scrollMarginTop: 70 }}>
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "80px 24px" }}>
+        <SectionEyebrow>What End Users Feel</SectionEyebrow>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20, flexWrap: "wrap", gap: 14 }}>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: 0 }}>What teams say once it's running.</h2>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600, color: T.cyan, background: T.cyanDim, border: `1px solid ${T.cyan}55`, borderRadius: 999, padding: "8px 14px", cursor: "pointer" }}
+          >
+            <MessageSquarePlus size={14} /> {showForm ? "Close" : "Share your testimonial"}
+          </button>
+        </div>
+
+        {!backendReady && (
+          <div style={{ fontSize: 11.5, color: T.mutedDim, fontFamily: "IBM Plex Mono", border: `1px solid ${T.border}`, borderRadius: 999, padding: "5px 11px", display: "inline-block", marginBottom: 20 }}>
+            placeholder content below — connect testimonial storage (see TESTIMONIALS_SETUP.md) to collect real ones
+          </div>
+        )}
+
+        {showForm && (
+          <form onSubmit={submit} style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 14, padding: 22, marginBottom: 28, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              <div>
+                <label style={{ fontSize: 11, color: T.mutedDim, display: "block", marginBottom: 4 }}>Name *</label>
+                <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inputStyle} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: T.mutedDim, display: "block", marginBottom: 4 }}>Title</label>
+                <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} style={inputStyle} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: T.mutedDim, display: "block", marginBottom: 4 }}>Company</label>
+                <input value={form.org} onChange={(e) => setForm({ ...form, org: e.target.value })} style={inputStyle} />
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: T.mutedDim, display: "block", marginBottom: 4 }}>Your testimonial * (20–500 characters)</label>
+              <textarea required rows={3} maxLength={500} value={form.quote} onChange={(e) => setForm({ ...form, quote: e.target.value })} style={{ ...inputStyle, resize: "vertical" }} />
+            </div>
+            {error && <div style={{ fontSize: 12, color: T.red, background: T.redDim, borderRadius: 7, padding: "8px 10px" }}>{error}</div>}
+            <button
+              type="submit"
+              disabled={status === "loading"}
+              style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "9px 16px", cursor: "pointer" }}
+            >
+              {status === "loading" && <Loader2 size={14} className="edh-spin" />}
+              {status === "done" ? "Submitted — thank you!" : status === "loading" ? "Submitting…" : "Submit testimonial"}
+            </button>
+            <div style={{ fontSize: 10.5, color: T.mutedDim }}>Posted directly to this page — no email client opens, nothing to send yourself.</div>
+          </form>
+        )}
+
+        {display.length === 0 ? (
+          <div style={{ fontSize: 13, color: T.mutedDim, padding: "24px 0" }}>Be the first to share how EDH is working for your team.</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
+            {display.map((t, i) => (
+              <div key={i} style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 14, padding: 22, display: "flex", flexDirection: "column" }}>
+                <Quote size={18} color={T.amberDim} style={{ marginBottom: 12 }} />
+                <p style={{ fontSize: 13.5, color: T.muted, lineHeight: 1.65, flex: 1 }}>{t.quote}</p>
+                <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${T.border}` }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{t.name}{t.title ? `, ${t.title}` : ""}</div>
+                  <div style={{ fontSize: 11.5, color: T.mutedDim }}>{t.org || t.org === "" ? t.org : ""}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const inputStyle = { width: "100%", boxSizing: "border-box", background: T.panelAlt, border: `1px solid ${T.border}`, borderRadius: 7, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: "'Inter', sans-serif" };
+
+export default function LandingPage({ onLaunch, onSelectModule }) {
   const [contactPlan, setContactPlan] = useState(null); // null | string
 
   return (
     <div style={{ background: T.bg, color: T.text, fontFamily: "'Inter', sans-serif", minHeight: "100vh" }}>
-      <style>{FONT_IMPORT}{`html { scroll-behavior: smooth; }`}</style>
+      <style>{FONT_IMPORT}{`html { scroll-behavior: smooth; } .edh-spin { animation: edh-spin 0.9s linear infinite; } @keyframes edh-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
       {contactPlan && <ContactModal plan={contactPlan} onClose={() => setContactPlan(null)} />}
 
@@ -183,8 +312,8 @@ export default function LandingPage({ onLaunch }) {
       <div style={{ borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, background: `${T.bg}F2`, backdropFilter: "blur(8px)", zIndex: 20 }}>
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <a href="#top" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", color: "inherit" }}>
-            <div style={{ width: 30, height: 30, borderRadius: 8, background: `linear-gradient(135deg, ${T.amber}, ${T.cyan})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <ShieldCheck size={17} color="#0A0E17" />
+            <div style={{ width: 30, height: 30, borderRadius: 8, background: T.coral, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <ShieldCheck size={17} color="#FFFFFF" />
             </div>
             <div>
               <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15, lineHeight: 1.1 }}>Enterprise Drishti Hub</div>
@@ -205,8 +334,8 @@ export default function LandingPage({ onLaunch }) {
             <button
               onClick={onLaunch}
               style={{
-                display: "flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 600, color: "#0A0E17",
-                background: T.amber, border: "none", borderRadius: 8, padding: "9px 16px", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 600, color: "#FFFFFF",
+                background: T.coral, border: "none", borderRadius: 8, padding: "9px 16px", cursor: "pointer",
               }}
             >
               Launch Dashboard <ArrowRight size={14} />
@@ -235,7 +364,7 @@ export default function LandingPage({ onLaunch }) {
             posture is something you can see in real time, not reconstruct once a year for an auditor.
           </p>
           <div style={{ display: "flex", gap: 12, marginTop: 32, flexWrap: "wrap" }}>
-            <button onClick={onLaunch} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "#0A0E17", background: T.amber, border: "none", borderRadius: 9, padding: "12px 20px", cursor: "pointer" }}>
+            <button onClick={onLaunch} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "12px 20px", cursor: "pointer" }}>
               Launch Dashboard <ArrowRight size={15} />
             </button>
             <button onClick={() => setContactPlan("General inquiry")} style={{ fontSize: 14, fontWeight: 600, color: T.text, background: "transparent", border: `1px solid ${T.borderLight}`, borderRadius: 9, padding: "12px 20px", cursor: "pointer" }}>
@@ -288,13 +417,20 @@ export default function LandingPage({ onLaunch }) {
           {MODULES.map((m) => {
             const Icon = m.icon;
             return (
-              <div key={m.name} style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 13, padding: 20 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 9, background: T.panelAlt, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
-                  <Icon size={16} color={T.amber} />
+              <button
+                key={m.name}
+                onClick={() => onSelectModule(m)}
+                style={{ textAlign: "left", cursor: "pointer", background: T.panel, border: `1px solid ${T.border}`, borderRadius: 13, padding: 20, font: "inherit", color: "inherit" }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 9, background: T.panelAlt, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+                    <Icon size={16} color={T.amber} />
+                  </div>
+                  <ArrowRight size={14} color={T.mutedDim} />
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: T.text, marginBottom: 6 }}>{m.name}</div>
                 <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.55 }}>{m.desc}</div>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -395,7 +531,7 @@ export default function LandingPage({ onLaunch }) {
               }}
             >
               {tier.highlight && (
-                <div style={{ position: "absolute", top: -12, left: 24, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "#0A0E17", background: T.amber, padding: "3px 10px", borderRadius: 999, fontFamily: "IBM Plex Mono" }}>
+                <div style={{ position: "absolute", top: -12, left: 24, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: T.text, background: T.amber, padding: "3px 10px", borderRadius: 999, fontFamily: "IBM Plex Mono" }}>
                   Most common
                 </div>
               )}
@@ -408,7 +544,7 @@ export default function LandingPage({ onLaunch }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1, marginBottom: 24 }}>
                 {tier.features.map((f) => (
                   <div key={f} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12.5, color: T.muted }}>
-                    <Check size={14} color={tier.highlight ? T.amber : T.cyan} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <Check size={14} color={tier.highlight ? T.coral : T.cyan} style={{ flexShrink: 0, marginTop: 1 }} />
                     {f}
                   </div>
                 ))}
@@ -418,8 +554,8 @@ export default function LandingPage({ onLaunch }) {
                 style={{
                   fontSize: 13, fontWeight: 600, borderRadius: 9, padding: "11px 16px", cursor: "pointer",
                   border: tier.highlight ? "none" : `1px solid ${T.borderLight}`,
-                  background: tier.highlight ? T.amber : "transparent",
-                  color: tier.highlight ? "#0A0E17" : T.text,
+                  background: tier.highlight ? T.coral : "transparent",
+                  color: tier.highlight ? "#FFFFFF" : T.text,
                 }}
               >
                 {tier.cta}
@@ -476,41 +612,13 @@ export default function LandingPage({ onLaunch }) {
       </div>
 
       {/* ---- What End Users Feel (testimonials) ---- */}
-      <div id="feedback" style={{ borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, scrollMarginTop: 70 }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "80px 24px" }}>
-          <SectionEyebrow>What End Users Feel</SectionEyebrow>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, flexWrap: "wrap", gap: 14 }}>
-            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: 0 }}>What teams say once it's running.</h2>
-            <button
-              onClick={() => setContactPlan("Testimonial / feedback")}
-              style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600, color: T.cyan, background: T.cyanDim, border: `1px solid #1D5A56`, borderRadius: 999, padding: "8px 14px", cursor: "pointer" }}
-            >
-              <MessageSquarePlus size={14} /> Share your testimonial
-            </button>
-          </div>
-          <div style={{ fontSize: 11.5, color: T.mutedDim, fontFamily: "IBM Plex Mono", border: `1px solid ${T.border}`, borderRadius: 999, padding: "5px 11px", display: "inline-block", marginBottom: 20 }}>
-            placeholder content below — swap in real quotes before publishing
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
-            {TESTIMONIALS.map((t, i) => (
-              <div key={i} style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 14, padding: 22, display: "flex", flexDirection: "column" }}>
-                <Quote size={18} color={T.amberDim} style={{ marginBottom: 12 }} />
-                <p style={{ fontSize: 13.5, color: T.muted, lineHeight: 1.65, flex: 1 }}>{t.quote}</p>
-                <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px solid ${T.border}` }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{t.name}</div>
-                  <div style={{ fontSize: 11.5, color: T.mutedDim }}>{t.org}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <TestimonialsSection />
 
       {/* ---- Final CTA ---- */}
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "80px 24px", textAlign: "center" }}>
         <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: "0 0 14px" }}>See your whole risk posture in one place.</h2>
         <p style={{ fontSize: 14.5, color: T.muted, marginBottom: 28 }}>Self-hosted. Human-approved. Built for banking and capital markets.</p>
-        <button onClick={onLaunch} style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "#0A0E17", background: T.amber, border: "none", borderRadius: 9, padding: "13px 22px", cursor: "pointer" }}>
+        <button onClick={onLaunch} style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "13px 22px", cursor: "pointer" }}>
           Launch Dashboard <ArrowRight size={15} />
         </button>
       </div>

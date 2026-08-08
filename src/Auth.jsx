@@ -55,8 +55,8 @@ export default function AuthScreen({ onSignedIn, onBackToSite }) {
         </button>
 
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 28 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: `linear-gradient(135deg, ${T.amber}, ${T.cyan})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <ShieldCheck size={18} color="#0A0E17" />
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: T.coral, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ShieldCheck size={18} color="#FFFFFF" />
           </div>
           <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 17 }}>Enterprise Drishti Hub</div>
         </div>
@@ -89,7 +89,7 @@ export default function AuthScreen({ onSignedIn, onBackToSite }) {
               <label style={{ fontSize: 11.5, color: T.mutedDim, display: "block", marginBottom: 5 }}>Email</label>
               <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" style={inputStyle} />
             </div>
-            <button type="submit" style={{ marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, fontSize: 13.5, fontWeight: 600, color: "#0A0E17", background: T.amber, border: "none", borderRadius: 9, padding: "10px 16px", cursor: "pointer" }}>
+            <button type="submit" style={{ marginTop: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, fontSize: 13.5, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "10px 16px", cursor: "pointer" }}>
               <Mail size={14} /> Continue with email <ArrowRight size={13} />
             </button>
           </form>
