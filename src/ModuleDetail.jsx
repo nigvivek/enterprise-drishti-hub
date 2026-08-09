@@ -3,10 +3,33 @@ import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 import { T, FONT_IMPORT } from "./tokens.js";
 import { MODULE_DETAILS } from "./moduleDetails.js";
 
-function FlowDiagram({ stages }) {
+function wrapLabel(text, maxCharsPerLine) {
+  const words = text.split(" ");
+  const lines = [];
+  let current = "";
+  words.forEach((word) => {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length > maxCharsPerLine && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
+  });
+  if (current) lines.push(current);
+  return lines;
+}
+
+function FlowDiagram({ stages, accentColor }) {
   const boxW = 190;
-  const boxH = 64;
   const gap = 44;
+  const lineHeight = 16;
+  const vPadding = 22;
+  const maxCharsPerLine = 20;
+
+  const wrapped = stages.map((label) => wrapLabel(label, maxCharsPerLine));
+  const maxLines = Math.max(...wrapped.map((l) => l.length));
+  const boxH = Math.max(64, maxLines * lineHeight + vPadding);
   const width = stages.length * boxW + (stages.length - 1) * gap;
   const height = boxH + 20;
 
@@ -14,18 +37,21 @@ function FlowDiagram({ stages }) {
     <svg viewBox={`0 0 ${width} ${height}`} width="100%" style={{ maxWidth: width }}>
       {stages.map((label, i) => {
         const x = i * (boxW + gap);
+        const lines = wrapped[i];
+        const cy = 10 + boxH / 2;
+        const startY = cy - ((lines.length - 1) * lineHeight) / 2;
         return (
           <g key={label}>
-            <rect x={x} y={10} width={boxW} height={boxH} rx={12} fill={T.panel} stroke={i === stages.length - 1 ? T.coral : T.border} strokeWidth={i === stages.length - 1 ? 1.6 : 1.2} />
-            <foreignObject x={x} y={10} width={boxW} height={boxH}>
-              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "0 10px", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 12.5, color: T.text, lineHeight: 1.3 }}>
-                {label}
-              </div>
-            </foreignObject>
+            <rect x={x} y={10} width={boxW} height={boxH} rx={12} fill={T.panel} stroke={i === stages.length - 1 ? (accentColor || T.coral) : T.border} strokeWidth={i === stages.length - 1 ? 1.6 : 1.2} />
+            <text x={x + boxW / 2} textAnchor="middle" fontFamily="'Space Grotesk', sans-serif" fontWeight="600" fontSize="12" fill={T.text}>
+              {lines.map((line, li) => (
+                <tspan key={li} x={x + boxW / 2} y={startY + li * lineHeight}>{line}</tspan>
+              ))}
+            </text>
             {i < stages.length - 1 && (
               <g>
-                <line x1={x + boxW} y1={10 + boxH / 2} x2={x + boxW + gap - 6} y2={10 + boxH / 2} stroke={T.borderLight} strokeWidth="1.6" />
-                <polygon points={`${x + boxW + gap - 6},${10 + boxH / 2 - 5} ${x + boxW + gap},${10 + boxH / 2} ${x + boxW + gap - 6},${10 + boxH / 2 + 5}`} fill={T.borderLight} />
+                <line x1={x + boxW} y1={cy} x2={x + boxW + gap - 6} y2={cy} stroke={T.borderLight} strokeWidth="1.6" />
+                <polygon points={`${x + boxW + gap - 6},${cy - 5} ${x + boxW + gap},${cy} ${x + boxW + gap - 6},${cy + 5}`} fill={T.borderLight} />
               </g>
             )}
           </g>
@@ -62,9 +88,14 @@ export default function ModuleDetail({ moduleDef, onBack, onLaunch }) {
 
         <p style={{ fontSize: 16, color: T.muted, lineHeight: 1.7, marginBottom: 40, maxWidth: 720 }}>{detail.commentary}</p>
 
-        <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 16, padding: "28px 24px", marginBottom: 40, overflowX: "auto" }}>
+        <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 16, padding: "28px 24px", marginBottom: 24, overflowX: "auto" }}>
           <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, letterSpacing: "0.08em", color: T.amber, textTransform: "uppercase", marginBottom: 16 }}>How a request flows through this module</div>
-          <FlowDiagram stages={detail.flow} />
+          <FlowDiagram stages={detail.flow} accentColor={T.coral} />
+        </div>
+
+        <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 16, padding: "28px 24px", marginBottom: 40, overflowX: "auto" }}>
+          <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, letterSpacing: "0.08em", color: T.cyan, textTransform: "uppercase", marginBottom: 16 }}>Example data trace (illustrative)</div>
+          <FlowDiagram stages={detail.exampleFlow} accentColor={T.cyan} />
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: T.mutedDim, marginBottom: 32 }}>

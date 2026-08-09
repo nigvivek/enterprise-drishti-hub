@@ -367,9 +367,6 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
             <button onClick={onLaunch} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "12px 20px", cursor: "pointer" }}>
               Launch Dashboard <ArrowRight size={15} />
             </button>
-            <button onClick={() => setContactPlan("General inquiry")} style={{ fontSize: 14, fontWeight: 600, color: T.text, background: "transparent", border: `1px solid ${T.borderLight}`, borderRadius: 9, padding: "12px 20px", cursor: "pointer" }}>
-              Talk to us
-            </button>
           </div>
           <div style={{ display: "flex", gap: 26, marginTop: 40, flexWrap: "wrap" }}>
             {[["10", "integrated modules"], ["4", "cloud providers connected"], ["0", "third-party data exposure"]].map(([n, l]) => (
