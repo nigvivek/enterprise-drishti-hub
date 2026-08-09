@@ -63,6 +63,40 @@ export function guestEmail() {
   return GUEST_EMAIL;
 }
 
+// Wipes every trace of the guest's local data — used when a guest session
+// times out, since guest data was never meant to persist beyond one visit.
+export function clearGuestData() {
+  const email = GUEST_EMAIL;
+  try {
+    localStorage.removeItem(`${NS}:projects:${email}`);
+    localStorage.removeItem(`${NS}:connections:${email}`);
+    localStorage.removeItem(`${NS}:history:${email}`);
+    const users = getUsers();
+    delete users[email];
+    write(`${NS}:users`, users);
+  } catch {
+    // best-effort cleanup
+  }
+}
+
+// ---- Session activity (for the 20-minute inactivity timeout) ----
+const SESSION_TIMEOUT_MS = 20 * 60 * 1000;
+
+export function touchActivity() {
+  write(`${NS}:lastActivity`, Date.now());
+}
+export function getIdleMs() {
+  const last = read(`${NS}:lastActivity`, null);
+  if (!last) return 0;
+  return Date.now() - last;
+}
+export function isSessionExpired() {
+  const last = read(`${NS}:lastActivity`, null);
+  if (!last) return false; // no activity recorded yet — don't expire on first load
+  return Date.now() - last > SESSION_TIMEOUT_MS;
+}
+export { SESSION_TIMEOUT_MS };
+
 // ---- Projects ----
 export function getProjects(email) {
   return read(`${NS}:projects:${email}`, []);

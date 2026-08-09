@@ -8,6 +8,51 @@ const HTML_HINT =
   "for the API. Also double-check the workspace URL has no trailing path (should end at .cloud.databricks.com or " +
   "similar, not something like /login or a specific page).";
 
+export async function browseDatabricksSchemas(body) {
+  const workspaceUrl = (body.workspaceUrl || "").trim();
+  const token = (body.token || "").trim();
+  const catalogName = (body.catalogName || "").trim();
+  if (!workspaceUrl || !token || !catalogName) {
+    return { ok: false, error: "workspaceUrl, token, and catalogName are required" };
+  }
+  const base = workspaceUrl.replace(/\/$/, "");
+  try {
+    const resp = await fetch(`${base}/api/2.1/unity-catalog/schemas?catalog_name=${encodeURIComponent(catalogName)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const { data, raw } = await safeJson(resp);
+    if (!resp.ok || !data) {
+      return { ok: false, error: data?.message || describeUnexpectedResponse(resp, data, raw) };
+    }
+    return { ok: true, schemas: (data.schemas || []).map((s) => ({ name: s.name, fullName: s.full_name })) };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+export async function browseDatabricksTables(body) {
+  const workspaceUrl = (body.workspaceUrl || "").trim();
+  const token = (body.token || "").trim();
+  const catalogName = (body.catalogName || "").trim();
+  const schemaName = (body.schemaName || "").trim();
+  if (!workspaceUrl || !token || !catalogName || !schemaName) {
+    return { ok: false, error: "workspaceUrl, token, catalogName, and schemaName are required" };
+  }
+  const base = workspaceUrl.replace(/\/$/, "");
+  try {
+    const resp = await fetch(`${base}/api/2.1/unity-catalog/tables?catalog_name=${encodeURIComponent(catalogName)}&schema_name=${encodeURIComponent(schemaName)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const { data, raw } = await safeJson(resp);
+    if (!resp.ok || !data) {
+      return { ok: false, error: data?.message || describeUnexpectedResponse(resp, data, raw) };
+    }
+    return { ok: true, tables: (data.tables || []).map((t) => ({ name: t.name, fullName: t.full_name, type: t.table_type })) };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
 export async function connectDatabricks(body) {
   const workspaceUrl = (body.workspaceUrl || "").trim();
   const token = (body.token || "").trim();

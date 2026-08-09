@@ -5,7 +5,7 @@ import { upsertUser, setCurrentUserEmail, guestEmail } from "./store.js";
 import { GOOGLE_CLIENT_ID } from "./googleConfig.js";
 import { loadGoogleScript, decodeGoogleCredential } from "./googleAuth.js";
 
-export default function AuthScreen({ onSignedIn, onBackToSite }) {
+export default function AuthScreen({ onSignedIn, onBackToSite, timeoutNotice }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [googleReady, setGoogleReady] = useState(false);
@@ -62,6 +62,11 @@ export default function AuthScreen({ onSignedIn, onBackToSite }) {
         </div>
 
         <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 24, margin: "0 0 6px" }}>Sign in to your workspace</h1>
+        {timeoutNotice && (
+          <div style={{ fontSize: 12, color: T.coral, background: T.coralDim, borderRadius: 8, padding: "8px 12px", marginBottom: 10 }}>
+            Your previous session ended after 20 minutes of inactivity.
+          </div>
+        )}
         <p style={{ fontSize: 13, color: T.muted, marginBottom: 28 }}>
           Your projects, connections, and run history are saved to this browser under your account.
         </p>

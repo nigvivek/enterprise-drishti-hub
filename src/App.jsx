@@ -1095,7 +1095,7 @@ function Gateway() {
 /* ---------------------------------------------------------------------- */
 /*  App shell                                                              */
 /* ---------------------------------------------------------------------- */
-export default function EnterpriseDrishtiHub({ onBack, enabledModuleIds }) {
+export default function EnterpriseDrishtiHub({ onBack, enabledModuleIds, activeProject }) {
   const NAV = enabledModuleIds && enabledModuleIds.length
     ? MODULE_LIST.filter((m) => enabledModuleIds.includes(m.id))
     : MODULE_LIST;
@@ -1168,9 +1168,16 @@ export default function EnterpriseDrishtiHub({ onBack, enabledModuleIds }) {
 
       {/* Main */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ borderBottom: `1px solid ${T.border}`, padding: "16px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ position: "sticky", top: 0, zIndex: 15, background: `${T.bg}F5`, backdropFilter: "blur(6px)", borderBottom: `1px solid ${T.border}`, padding: "16px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontSize: 10.5, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{active.module}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+              <span style={{ fontSize: 10.5, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{active.module}</span>
+              {activeProject && (
+                <span style={{ fontSize: 10, fontWeight: 600, color: T.coral, background: T.coralDim, borderRadius: 5, padding: "1px 7px", fontFamily: "IBM Plex Mono" }}>
+                  {activeProject.name}
+                </span>
+              )}
+            </div>
             <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 19 }}>{active.label}</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>

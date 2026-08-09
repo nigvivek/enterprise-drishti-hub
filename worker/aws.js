@@ -8,6 +8,41 @@ async function xmlTagValues(xmlText, tag) {
   return out;
 }
 
+export async function browseS3Objects(body) {
+  const accessKeyId = (body.accessKeyId || "").trim();
+  const secretAccessKey = (body.secretAccessKey || "").trim();
+  const sessionToken = (body.sessionToken || "").trim() || undefined;
+  const region = (body.region || "").trim();
+  const bucket = (body.bucket || "").trim();
+  const prefix = body.prefix || "";
+
+  if (!accessKeyId || !secretAccessKey || !region || !bucket) {
+    return { ok: false, error: "accessKeyId, secretAccessKey, region, and bucket are required" };
+  }
+
+  const host = `${bucket}.s3.${region === "us-east-1" ? "amazonaws.com" : `${region}.amazonaws.com`}`;
+  const query = { "list-type": "2", "max-keys": "200", "delimiter": "/", ...(prefix ? { prefix } : {}) };
+
+  try {
+    const { headers, canonicalQuery } = await signAwsV4GetRequest({ accessKeyId, secretAccessKey, sessionToken, region, service: "s3", host, path: "/", query });
+    const resp = await fetch(`https://${host}/?${canonicalQuery}`, { headers: { ...headers, host } });
+    const text = await resp.text();
+    if (!resp.ok) {
+      return { ok: false, error: (await xmlTagValues(text, "Message"))[0] || `HTTP ${resp.status}` };
+    }
+    const folders = (await xmlTagValues(text, "Prefix")).filter((p) => p !== prefix); // CommonPrefixes entries
+    const files = await xmlTagValues(text, "Key");
+    return {
+      ok: true,
+      currentPrefix: prefix,
+      folders: folders.map((f) => ({ type: "folder", path: f, name: f.replace(prefix, "").replace(/\/$/, "") })),
+      files: files.filter((f) => f !== prefix).map((f) => ({ type: "object", path: f, name: f.replace(prefix, "") })),
+    };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
 export async function connectAws(body) {
   const accessKeyId = (body.accessKeyId || "").trim();
   const secretAccessKey = (body.secretAccessKey || "").trim();

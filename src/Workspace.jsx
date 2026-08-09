@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   ShieldCheck, LogOut, FolderPlus, Folder, Cloud, Database, FileText, Check,
   Loader2, ExternalLink, History, Save, Rocket, ChevronDown, Lock,
@@ -32,7 +32,188 @@ const CONNECTOR_DEFS = [
   { id: "files", name: "Files", category: "file", icon: FileText, live: false, fields: [["source", "Source (Local / SharePoint / Drive / S3)", "text"], ["nickname", "Nickname", "text"]] },
 ];
 
-function ConnectorCard({ def, connection, onConnect }) {
+function ScopeButton({ label, onClick }) {
+  return (
+    <button onClick={onClick} style={{ fontSize: 9.5, fontWeight: 600, color: T.coral, background: "none", border: `1px solid ${T.coral}55`, borderRadius: 5, padding: "2px 6px", cursor: "pointer", whiteSpace: "nowrap" }}>
+      {label}
+    </button>
+  );
+}
+
+function S3Browser({ bucket, getCreds, onSelectScope }) {
+  const [open, setOpen] = useState(false);
+  const [prefix, setPrefix] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [data, setData] = useState(null);
+
+  const load = async (p) => {
+    const creds = getCreds();
+    if (!creds) { setError("Reconnect first — credentials for this session aren't cached (e.g. after a page reload)."); return; }
+    setLoading(true);
+    setError("");
+    try {
+      const resp = await fetch("/api/browse/s3-objects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...creds, bucket, prefix: p }),
+      });
+      const result = await resp.json();
+      if (!result.ok) { setError(result.error || "Browse failed"); setLoading(false); return; }
+      setData(result);
+      setPrefix(p);
+    } catch (e) {
+      setError(e.message);
+    }
+    setLoading(false);
+  };
+
+  const toggle = () => {
+    if (!open) load("");
+    setOpen(!open);
+  };
+
+  return (
+    <div style={{ borderTop: `1px solid ${T.border}`, padding: "6px 8px" }}>
+      <button onClick={toggle} style={{ fontSize: 10, color: T.cyan, background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}>
+        {open ? "Hide" : "Browse"} objects <ChevronDown size={9} style={{ transform: open ? "rotate(180deg)" : "none" }} />
+      </button>
+      {open && (
+        <div style={{ marginTop: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <span style={{ fontSize: 9.5, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>s3://{bucket}/{prefix}</span>
+            <ScopeButton label="Use this path" onClick={() => onSelectScope({ level: "bucket/prefix", path: `s3://${bucket}/${prefix}` })} />
+          </div>
+          {loading && <div style={{ fontSize: 10, color: T.mutedDim }}>Loading…</div>}
+          {error && <div style={{ fontSize: 10, color: T.red }}>{error}</div>}
+          {data && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {prefix && (
+                <button onClick={() => load(prefix.split("/").slice(0, -2).join("/") + (prefix.split("/").length > 2 ? "/" : ""))} style={{ fontSize: 10, color: T.muted, background: "none", border: "none", textAlign: "left", cursor: "pointer", padding: "3px 0" }}>
+                  .. (up one level)
+                </button>
+              )}
+              {data.folders.map((f) => (
+                <div key={f.path} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <button onClick={() => load(f.path)} style={{ fontSize: 10.5, color: T.amber, background: "none", border: "none", textAlign: "left", cursor: "pointer", padding: "3px 0" }}>
+                    📁 {f.name}
+                  </button>
+                  <ScopeButton label="Use" onClick={() => onSelectScope({ level: "prefix", path: `s3://${bucket}/${f.path}` })} />
+                </div>
+              ))}
+              {data.files.map((file) => (
+                <div key={file.path} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 10.5, color: T.text, padding: "3px 0" }}>{file.name}</span>
+                  <ScopeButton label="Use" onClick={() => onSelectScope({ level: "object", path: `s3://${bucket}/${file.path}` })} />
+                </div>
+              ))}
+              {!data.folders.length && !data.files.length && <div style={{ fontSize: 10, color: T.mutedDim }}>Empty.</div>}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DatabricksBrowser({ catalog, getCreds, onSelectScope }) {
+  const [open, setOpen] = useState(false);
+  const [schemas, setSchemas] = useState(null);
+  const [expandedSchema, setExpandedSchema] = useState(null);
+  const [tables, setTables] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const loadSchemas = async () => {
+    const creds = getCreds();
+    if (!creds) { setError("Reconnect first — credentials for this session aren't cached (e.g. after a page reload)."); return; }
+    setLoading(true);
+    setError("");
+    try {
+      const resp = await fetch("/api/browse/databricks-schemas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...creds, catalogName: catalog }),
+      });
+      const result = await resp.json();
+      if (!result.ok) { setError(result.error || "Browse failed"); setLoading(false); return; }
+      setSchemas(result.schemas);
+    } catch (e) {
+      setError(e.message);
+    }
+    setLoading(false);
+  };
+
+  const loadTables = async (schemaName) => {
+    if (expandedSchema === schemaName) { setExpandedSchema(null); return; }
+    setExpandedSchema(schemaName);
+    if (tables[schemaName]) return;
+    const creds = getCreds();
+    try {
+      const resp = await fetch("/api/browse/databricks-tables", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...creds, catalogName: catalog, schemaName }),
+      });
+      const result = await resp.json();
+      setTables((prev) => ({ ...prev, [schemaName]: result.ok ? result.tables : [] }));
+    } catch {
+      setTables((prev) => ({ ...prev, [schemaName]: [] }));
+    }
+  };
+
+  const toggle = () => {
+    if (!open && !schemas) loadSchemas();
+    setOpen(!open);
+  };
+
+  return (
+    <div style={{ borderTop: `1px solid ${T.border}`, padding: "6px 8px" }}>
+      <button onClick={toggle} style={{ fontSize: 10, color: T.cyan, background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 4 }}>
+        {open ? "Hide" : "Browse"} schemas & tables <ChevronDown size={9} style={{ transform: open ? "rotate(180deg)" : "none" }} />
+      </button>
+      {open && (
+        <div style={{ marginTop: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <span style={{ fontSize: 9.5, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{catalog}</span>
+            <ScopeButton label="Use this catalog" onClick={() => onSelectScope({ level: "catalog", path: catalog })} />
+          </div>
+          {loading && <div style={{ fontSize: 10, color: T.mutedDim }}>Loading…</div>}
+          {error && <div style={{ fontSize: 10, color: T.red }}>{error}</div>}
+          {schemas && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              {schemas.map((s) => (
+                <div key={s.name}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <button onClick={() => loadTables(s.name)} style={{ fontSize: 10.5, color: T.amber, background: "none", border: "none", textAlign: "left", cursor: "pointer", padding: "3px 0" }}>
+                      🗂 {s.name}
+                    </button>
+                    <ScopeButton label="Use schema" onClick={() => onSelectScope({ level: "schema", path: `${catalog}.${s.name}` })} />
+                  </div>
+                  {expandedSchema === s.name && (
+                    <div style={{ marginLeft: 14, display: "flex", flexDirection: "column", gap: 3 }}>
+                      {!tables[s.name] && <div style={{ fontSize: 10, color: T.mutedDim }}>Loading tables…</div>}
+                      {tables[s.name]?.map((t) => (
+                        <div key={t.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: 10.5, color: T.text, padding: "2px 0" }}>{t.name}</span>
+                          <ScopeButton label="Use table" onClick={() => onSelectScope({ level: "table", path: `${catalog}.${s.name}.${t.name}` })} />
+                        </div>
+                      ))}
+                      {tables[s.name]?.length === 0 && <div style={{ fontSize: 10, color: T.mutedDim }}>No tables.</div>}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {!schemas.length && <div style={{ fontSize: 10, color: T.mutedDim }}>No schemas found.</div>}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConnectorCard({ def, connection, onConnect, onCredentialsCached, getCachedCredentials, onSelectScope }) {
   const [open, setOpen] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [form, setForm] = useState({});
@@ -81,6 +262,9 @@ function ConnectorCard({ def, connection, onConnect }) {
         partialErrors: result.errors || [],
         connectedAt: new Date().toISOString(),
       });
+      // Cache the raw credentials in memory (parent-held ref, never localStorage) so
+      // browsing into objects/schemas/tables doesn't require re-entering them each time.
+      onCredentialsCached?.(def.id, form);
       setConnecting(false);
       setOpen(false);
     } catch (err) {
@@ -104,6 +288,11 @@ function ConnectorCard({ def, connection, onConnect }) {
             <div style={{ fontSize: 10.5, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>
               {connected ? `connected${connection.resources?.length ? ` · ${connection.resources.length} resource${connection.resources.length !== 1 ? "s" : ""} found` : ""}` : "not connected"}
             </div>
+            {connection?.validationScope && (
+              <div style={{ fontSize: 10, color: T.coral, fontFamily: "IBM Plex Mono", marginTop: 2 }}>
+                scope: {connection.validationScope.path} ({connection.validationScope.level})
+              </div>
+            )}
           </div>
         </div>
         <button
@@ -120,13 +309,25 @@ function ConnectorCard({ def, connection, onConnect }) {
             {showResources ? "Hide" : "Show"} resources <ChevronDown size={10} style={{ transform: showResources ? "rotate(180deg)" : "none" }} />
           </button>
           {showResources && (
-            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4, maxHeight: 160, overflowY: "auto" }}>
-              {connection.resources.map((r, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "5px 8px", background: T.panel, borderRadius: 6 }}>
-                  <span style={{ color: T.text }}>{r.name}</span>
-                  <span style={{ color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{r.service} · {r.type}</span>
-                </div>
-              ))}
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4, maxHeight: 320, overflowY: "auto" }}>
+              {connection.resources.map((r, i) => {
+                const browsableS3 = def.id === "aws" && r.service === "S3" && r.type === "bucket";
+                const browsableDatabricks = def.id === "databricks" && r.service === "Databricks" && r.type === "catalog";
+                return (
+                  <div key={i} style={{ background: T.panel, borderRadius: 6, overflow: "hidden" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, padding: "5px 8px" }}>
+                      <span style={{ color: T.text }}>{r.name}</span>
+                      <span style={{ color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{r.service} · {r.type}</span>
+                    </div>
+                    {browsableS3 && (
+                      <S3Browser bucket={r.name} getCreds={() => getCachedCredentials(def.id)} onSelectScope={(scope) => onSelectScope(def.id, scope)} />
+                    )}
+                    {browsableDatabricks && (
+                      <DatabricksBrowser catalog={r.name} getCreds={() => getCachedCredentials(def.id)} onSelectScope={(scope) => onSelectScope(def.id, scope)} />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -168,23 +369,49 @@ function ConnectorCard({ def, connection, onConnect }) {
   );
 }
 
-export default function Workspace({ email, onLaunchDashboard, onSignedOut, onBackToSite }) {
+export default function Workspace({ email, activeProject, onActiveProjectChange, onLaunchDashboard, onSignedOut, onBackToSite }) {
   const user = getUser(email);
   const guest = isGuest(email);
 
   const [projects, setProjects] = useState(() => getProjects(email));
-  const [activeProjectId, setActiveProjectId] = useState(() => getProjects(email)[0]?.id || null);
   const [connections, setConnections] = useState(() => getConnections(email));
   const [selectedModules, setSelectedModules] = useState([]);
   const [history, setHistory] = useState(() => getHistory(email));
   const [saveNotice, setSaveNotice] = useState("");
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
+  const [signInPrompt, setSignInPrompt] = useState(false);
+  const [scopeNotice, setScopeNotice] = useState("");
 
+  // In-memory only (never written to localStorage) — lets "Browse" calls reuse
+  // the credentials from the most recent successful connect for this provider,
+  // without re-prompting on every click. Cleared on page reload by design.
+  const credCache = useRef({});
+
+  const activeProjectId = activeProject?.id || null;
   const hasConnection = connections.some((c) => c.status === "connected");
-  const activeProject = projects.find((p) => p.id === activeProjectId);
+
+  // Default to the first existing project on load, if one exists and none is selected yet.
+  React.useEffect(() => {
+    if (!activeProject && projects.length) onActiveProjectChange(projects[0]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConnect = (conn) => {
     const updated = upsertConnection(email, conn) ? getConnections(email) : connections;
     setConnections(updated);
+  };
+
+  const handleCredentialsCached = (defId, form) => {
+    credCache.current[defId] = form;
+  };
+
+  const handleSelectScope = (defId, scope) => {
+    const conn = connections.find((c) => c.id === defId);
+    if (!conn) return;
+    const updatedConn = { ...conn, validationScope: scope };
+    const updated = upsertConnection(email, updatedConn) ? getConnections(email) : connections;
+    setConnections(updated);
+    setScopeNotice(`Validation scope set: ${scope.path} (${scope.level} level)`);
+    setTimeout(() => setScopeNotice(""), 3500);
   };
 
   const toggleModule = (id) => {
@@ -195,14 +422,22 @@ export default function Workspace({ email, onLaunchDashboard, onSignedOut, onBac
   };
 
   const handleNewProject = () => {
+    if (guest) { setSignInPrompt(true); setProjectMenuOpen(false); return; }
     const name = window.prompt("Project name?");
     if (!name) return;
     const project = createProject(email, name);
     setProjects(getProjects(email));
-    setActiveProjectId(project.id);
+    onActiveProjectChange(project);
+    setProjectMenuOpen(false);
+  };
+
+  const selectProject = (project) => {
+    onActiveProjectChange(project);
+    setProjectMenuOpen(false);
   };
 
   const saveToProject = (targetId) => {
+    if (guest) { setSignInPrompt(true); return; }
     let pid = targetId;
     if (pid === "__new__") {
       const name = window.prompt("New project name?");
@@ -210,7 +445,7 @@ export default function Workspace({ email, onLaunchDashboard, onSignedOut, onBac
       const project = createProject(email, name);
       setProjects(getProjects(email));
       pid = project.id;
-      setActiveProjectId(pid);
+      onActiveProjectChange(project);
     }
     updateProject(email, pid, {
       connectionIds: connections.filter((c) => c.status === "connected").map((c) => c.id),
@@ -237,15 +472,66 @@ export default function Workspace({ email, onLaunchDashboard, onSignedOut, onBac
     <div style={{ background: T.bg, color: T.text, minHeight: "100vh", fontFamily: "'Inter', sans-serif" }}>
       <style>{FONT_IMPORT}{`.spin { animation: edh-spin 0.9s linear infinite; } @keyframes edh-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
-      {/* Top bar */}
-      <div style={{ borderBottom: `1px solid ${T.border}`, padding: "14px 28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      {signInPrompt && (
+        <div onClick={() => setSignInPrompt(false)} style={{ position: "fixed", inset: 0, background: "#00000066", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 14, padding: 26, maxWidth: 360 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Sign in required</div>
+            <p style={{ fontSize: 13, color: T.muted, lineHeight: 1.6, marginBottom: 18 }}>
+              To create or access a project, you need to sign in. Guest sessions don't have persistent projects since
+              guest data doesn't survive a sign-out or session timeout.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button onClick={() => setSignInPrompt(false)} style={{ fontSize: 12.5, color: T.muted, background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => { signOut(); onSignedOut(); }} style={{ fontSize: 12.5, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}>Sign in</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Top bar — sticky/frozen so the project switcher stays reachable while scrolling */}
+      <div style={{ position: "sticky", top: 0, zIndex: 20, background: `${T.bg}F5`, backdropFilter: "blur(6px)", borderBottom: `1px solid ${T.border}`, padding: "14px 28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <button onClick={onBackToSite} style={{ display: "flex", alignItems: "center", gap: 9, background: "none", border: "none", cursor: "pointer", color: "inherit", padding: 0 }}>
           <div style={{ width: 28, height: 28, borderRadius: 7, background: T.coral, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <ShieldCheck size={15} color="#FFFFFF" />
           </div>
           <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 14.5 }}>Enterprise Drishti Hub</span>
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {/* Project switcher */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setProjectMenuOpen(!projectMenuOpen)}
+              style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600, color: T.text, background: T.panelAlt, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 12px", cursor: "pointer" }}
+            >
+              <Folder size={13} color={T.amber} />
+              {activeProject ? activeProject.name : guest ? "No project (guest)" : "Select project"}
+              <ChevronDown size={12} style={{ transform: projectMenuOpen ? "rotate(180deg)" : "none" }} />
+            </button>
+            {projectMenuOpen && (
+              <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: T.panel, border: `1px solid ${T.border}`, borderRadius: 10, minWidth: 220, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", zIndex: 30, overflow: "hidden" }}>
+                {projects.length === 0 && (
+                  <div style={{ padding: "12px 14px", fontSize: 12, color: T.mutedDim }}>{guest ? "Guests can't create projects." : "No projects yet."}</div>
+                )}
+                {projects.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => selectProject(p)}
+                    style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", fontSize: 12.5, color: p.id === activeProjectId ? T.coral : T.text, background: p.id === activeProjectId ? T.coralDim : "transparent", border: "none", cursor: "pointer" }}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+                <button
+                  onClick={handleNewProject}
+                  style={{ display: "flex", alignItems: "center", gap: 6, width: "100%", textAlign: "left", padding: "10px 14px", fontSize: 12.5, fontWeight: 600, color: T.cyan, background: "none", border: "none", borderTop: `1px solid ${T.border}`, cursor: "pointer" }}
+                >
+                  <FolderPlus size={13} /> New project
+                </button>
+              </div>
+            )}
+          </div>
+
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: 12.5, fontWeight: 600 }}>{guest ? "Guest session" : user?.name}</div>
             <div style={{ fontSize: 10.5, color: T.mutedDim }}>{guest ? "not saved beyond this browser" : user?.email}</div>
@@ -275,48 +561,29 @@ export default function Workspace({ email, onLaunchDashboard, onSignedOut, onBac
           </div>
         </div>
 
-        {/* Projects */}
-        <SectionCard eyebrow="Projects" title="Which project is this for?" icon={Folder}>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            {projects.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setActiveProjectId(p.id)}
-                style={{
-                  fontSize: 12.5, fontWeight: 600, padding: "8px 14px", borderRadius: 999, cursor: "pointer",
-                  border: `1px solid ${activeProjectId === p.id ? T.amber : T.border}`,
-                  background: activeProjectId === p.id ? T.amberDim : "transparent",
-                  color: activeProjectId === p.id ? T.amber : T.muted,
-                }}
-              >
-                {p.name}
-              </button>
-            ))}
-            <button onClick={handleNewProject} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: T.cyan, background: "none", border: `1px dashed ${T.borderLight}`, borderRadius: 999, padding: "8px 14px", cursor: "pointer" }}>
-              <FolderPlus size={13} /> New project
-            </button>
-          </div>
-          {!projects.length && <div style={{ fontSize: 12, color: T.mutedDim, marginTop: 10 }}>No projects yet — optional. You can also just connect and launch without one.</div>}
-        </SectionCard>
+        {/* Project selection now lives in the sticky top bar — see the switcher next to your account info. */}
 
         {/* Connectivity */}
         <SectionCard eyebrow="Data layer" title="Connect your cloud, databases, and files" icon={Cloud}>
+          {scopeNotice && (
+            <div style={{ fontSize: 11.5, color: T.coral, background: T.coralDim, borderRadius: 8, padding: "8px 12px", marginBottom: 14 }}>{scopeNotice}</div>
+          )}
           <div style={{ fontSize: 11, fontWeight: 700, color: T.mutedDim, textTransform: "uppercase", letterSpacing: "0.06em", margin: "4px 0 10px" }}>Cloud</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginBottom: 22 }}>
             {CONNECTOR_DEFS.filter((d) => d.category === "cloud").map((d) => (
-              <ConnectorCard key={d.id} def={d} connection={connections.find((c) => c.id === d.id)} onConnect={handleConnect} />
+              <ConnectorCard key={d.id} def={d} connection={connections.find((c) => c.id === d.id)} onConnect={handleConnect} onCredentialsCached={handleCredentialsCached} getCachedCredentials={(id) => credCache.current[id]} onSelectScope={handleSelectScope} />
             ))}
           </div>
           <div style={{ fontSize: 11, fontWeight: 700, color: T.mutedDim, textTransform: "uppercase", letterSpacing: "0.06em", margin: "4px 0 10px" }}>Databases & data platforms</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginBottom: 22 }}>
             {CONNECTOR_DEFS.filter((d) => d.category === "database").map((d) => (
-              <ConnectorCard key={d.id} def={d} connection={connections.find((c) => c.id === d.id)} onConnect={handleConnect} />
+              <ConnectorCard key={d.id} def={d} connection={connections.find((c) => c.id === d.id)} onConnect={handleConnect} onCredentialsCached={handleCredentialsCached} getCachedCredentials={(id) => credCache.current[id]} onSelectScope={handleSelectScope} />
             ))}
           </div>
           <div style={{ fontSize: 11, fontWeight: 700, color: T.mutedDim, textTransform: "uppercase", letterSpacing: "0.06em", margin: "4px 0 10px" }}>Files</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
             {CONNECTOR_DEFS.filter((d) => d.category === "file").map((d) => (
-              <ConnectorCard key={d.id} def={d} connection={connections.find((c) => c.id === d.id)} onConnect={handleConnect} />
+              <ConnectorCard key={d.id} def={d} connection={connections.find((c) => c.id === d.id)} onConnect={handleConnect} onCredentialsCached={handleCredentialsCached} getCachedCredentials={(id) => credCache.current[id]} onSelectScope={handleSelectScope} />
             ))}
           </div>
         </SectionCard>
