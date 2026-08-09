@@ -19,7 +19,7 @@ export async function connectAws(body) {
 
   // ---- S3: ListBuckets ----
   try {
-    const host = "s3.amazonaws.com"; // global endpoint; works for ListBuckets regardless of bucket regions
+    const host = region === "us-east-1" ? "s3.amazonaws.com" : `s3.${region}.amazonaws.com`;
     const { headers } = await signAwsV4GetRequest({ accessKeyId, secretAccessKey, sessionToken, region, service: "s3", host, path: "/" });
     const resp = await fetch(`https://${host}/`, { headers: { ...headers, host } });
     const text = await resp.text();

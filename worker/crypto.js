@@ -45,7 +45,12 @@ export async function signAwsV4GetRequest({ accessKeyId, secretAccessKey, sessio
     .join("&");
 
   const emptyPayloadHash = await sha256Hex("");
-  const headersToSign = { host, "x-amz-date": amzDate, ...(sessionToken ? { "x-amz-security-token": sessionToken } : {}) };
+  const headersToSign = {
+    host,
+    "x-amz-content-sha256": emptyPayloadHash,
+    "x-amz-date": amzDate,
+    ...(sessionToken ? { "x-amz-security-token": sessionToken } : {}),
+  };
   const sortedHeaderKeys = Object.keys(headersToSign).sort();
   const canonicalHeaders = sortedHeaderKeys.map((k) => `${k}:${headersToSign[k]}\n`).join("");
   const signedHeaders = sortedHeaderKeys.join(";");
@@ -66,6 +71,7 @@ export async function signAwsV4GetRequest({ accessKeyId, secretAccessKey, sessio
   return {
     headers: {
       "x-amz-date": amzDate,
+      "x-amz-content-sha256": emptyPayloadHash,
       Authorization: authorization,
       ...(sessionToken ? { "x-amz-security-token": sessionToken } : {}),
     },
