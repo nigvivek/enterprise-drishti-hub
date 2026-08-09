@@ -1,4 +1,12 @@
-import { safeJson } from "./shared.js";
+import { safeJson, describeUnexpectedResponse } from "./shared.js";
+
+const HTML_HINT =
+  "For Databricks specifically: this almost always means either (1) the personal access token is expired/revoked — " +
+  "generate a fresh one under User Settings → Developer → Access tokens, (2) PATs are disabled for this workspace " +
+  "by an admin (Admin Console → Advanced → Personal Access Tokens), or (3) the workspace enforces SSO in a way that " +
+  "intercepts API requests too, not just browser logins — ask your workspace admin whether token auth is permitted " +
+  "for the API. Also double-check the workspace URL has no trailing path (should end at .cloud.databricks.com or " +
+  "similar, not something like /login or a specific page).";
 
 export async function connectDatabricks(body) {
   const workspaceUrl = (body.workspaceUrl || "").trim();
@@ -28,7 +36,7 @@ export async function connectDatabricks(body) {
       });
       const { data, raw } = await safeJson(resp);
       if (!resp.ok || !data) {
-        errors.push(`Databricks: ${data?.message || `HTTP ${resp.status} — ${raw.slice(0, 150)}`}`);
+        errors.push(`Databricks: ${data?.message || describeUnexpectedResponse(resp, data, raw, HTML_HINT)}`);
       } else {
         (data.clusters || []).forEach((c) => resources.push({ service: "Databricks", name: c.cluster_name, type: "cluster" }));
       }

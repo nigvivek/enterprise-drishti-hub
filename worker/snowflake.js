@@ -1,4 +1,6 @@
-import { safeJson } from "./shared.js";
+import { safeJson, describeUnexpectedResponse } from "./shared.js";
+
+const HTML_HINT = "This usually means the account identifier is wrong (should look like xy12345.us-east-1, not a full URL) or the token has expired.";
 
 export async function connectSnowflake(body) {
   const account = (body.account || "").trim();
@@ -21,7 +23,7 @@ export async function connectSnowflake(body) {
     });
     const { data, raw } = await safeJson(resp);
     if (!resp.ok || !data) {
-      errors.push(`Snowflake: ${data?.message || `HTTP ${resp.status} — ${raw.slice(0, 150)}`}`);
+      errors.push(`Snowflake: ${data?.message || describeUnexpectedResponse(resp, data, raw, HTML_HINT)}`);
     } else {
       const rows = data.data || [];
       // SHOW DATABASES: name is typically column index 1

@@ -1,4 +1,6 @@
-import { safeJson } from "./shared.js";
+import { safeJson, describeUnexpectedResponse } from "./shared.js";
+
+const HTML_HINT = "This usually means the access token expired (tokens from `az account get-access-token` last ~1 hour) or wasn't scoped to https://management.azure.com.";
 
 export async function connectAzure(body) {
   const bearerToken = (body.bearerToken || "").trim();
@@ -17,7 +19,7 @@ export async function connectAzure(body) {
     });
     const { data, raw } = await safeJson(resp);
     if (!resp.ok || !data) {
-      errors.push(`Storage accounts: ${data?.error?.message || `HTTP ${resp.status} — ${raw.slice(0, 150)}`}`);
+      errors.push(`Storage accounts: ${data?.error?.message || describeUnexpectedResponse(resp, data, raw, HTML_HINT)}`);
     } else {
       (data.value || []).forEach((acc) => resources.push({ service: "Blob Storage", name: acc.name, type: acc.kind || "StorageV2" }));
     }

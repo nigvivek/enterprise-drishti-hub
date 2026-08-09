@@ -1,4 +1,6 @@
-import { safeJson } from "./shared.js";
+import { safeJson, describeUnexpectedResponse } from "./shared.js";
+
+const HTML_HINT = "This usually means the access token expired (tokens from `gcloud auth print-access-token` last ~1 hour) or the account needs to re-authenticate.";
 
 export async function connectGcp(body) {
   const accessToken = (body.accessToken || "").trim();
@@ -16,7 +18,7 @@ export async function connectGcp(body) {
     });
     const { data, raw } = await safeJson(resp);
     if (!resp.ok || !data) {
-      errors.push(`Cloud Storage: ${data?.error?.message || `HTTP ${resp.status} — ${raw.slice(0, 150)}`}`);
+      errors.push(`Cloud Storage: ${data?.error?.message || describeUnexpectedResponse(resp, data, raw, HTML_HINT)}`);
     } else {
       (data.items || []).forEach((b) => resources.push({ service: "Cloud Storage", name: b.name, type: "bucket" }));
     }
@@ -30,7 +32,7 @@ export async function connectGcp(body) {
     });
     const { data, raw } = await safeJson(resp);
     if (!resp.ok || !data) {
-      errors.push(`BigQuery: ${data?.error?.message || `HTTP ${resp.status} — ${raw.slice(0, 150)}`}`);
+      errors.push(`BigQuery: ${data?.error?.message || describeUnexpectedResponse(resp, data, raw, HTML_HINT)}`);
     } else {
       (data.datasets || []).forEach((d) => resources.push({ service: "BigQuery", name: d.datasetReference?.datasetId, type: "dataset" }));
     }
