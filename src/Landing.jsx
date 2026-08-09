@@ -10,16 +10,16 @@ import DataLayerDiagram from "./DataLayerDiagram.jsx";
 const SALES_EMAIL = "nehatyagi.in@gmail.com";
 
 const MODULES = [
-  { id: "regintel", module: "Module 1", icon: ScrollText, name: "Regulatory Change Intelligence", desc: "Every relevant regulatory change, filtered to what actually applies to your entities and jurisdictions." },
-  { id: "impact", module: "Module 2", icon: GitCompareArrows, name: "Compliance Impact Analysis", desc: "AI-proposed, human-approved mapping from regulatory change to the control it actually affects." },
-  { id: "controls", module: "Module 3", icon: ClipboardCheck, name: "Continuous Control Validation", desc: "Controls tested against live system state, not a once-a-year attestation." },
-  { id: "evidence", module: "Module 4", icon: FileStack, name: "AI-Driven Audit Evidence", desc: "Hash-chained, tamper-evident evidence packages generated in minutes, signed by a human before export." },
-  { id: "overview", module: "Module 5", icon: LayoutDashboard, name: "Enterprise Compliance Dashboard", desc: "One posture score, drillable by framework, business unit, and jurisdiction." },
-  { id: "predictive", module: "Module 6", icon: RadarIcon, name: "Predictive Regulatory Risk", desc: "Model-scored risk by topic, with the sample size and confidence shown — never a black box." },
-  { id: "cyber", module: "Module 7", icon: ShieldAlert, name: "Cybersecurity Monitoring", desc: "Your existing SIEM/EDR signal, correlated to the control and obligation it puts at risk." },
-  { id: "cloud", module: "Module 8", icon: Cloud, name: "Cloud Ecosystem Connect", desc: "Read-only, least-privilege connectors into AWS, GCP, Azure, and IBM Cloud." },
-  { id: "filegov", module: "Module 9", icon: FileCheck2, name: "File Governance & Scan", desc: "Drop in a document, get an immediate read on sensitive data and which obligation it triggers." },
-  { id: "gateway", module: "Module 10", icon: Route, name: "AI Gateway & Cost Governance", desc: "Routes every AI call across self-hosted and opt-in fallback models by cost, latency, and health — with full token and spend attribution for audit." },
+  { id: "regintel", module: "Module 1", icon: ScrollText, label: "Regulatory Change Intelligence", desc: "Every relevant regulatory change, filtered to what actually applies to your entities and jurisdictions." },
+  { id: "impact", module: "Module 2", icon: GitCompareArrows, label: "Compliance Impact Analysis", desc: "AI-proposed, human-approved mapping from regulatory change to the control it actually affects." },
+  { id: "controls", module: "Module 3", icon: ClipboardCheck, label: "Continuous Control Validation", desc: "Controls tested against live system state, not a once-a-year attestation." },
+  { id: "evidence", module: "Module 4", icon: FileStack, label: "AI-Driven Audit Evidence", desc: "Hash-chained, tamper-evident evidence packages generated in minutes, signed by a human before export." },
+  { id: "overview", module: "Module 5", icon: LayoutDashboard, label: "Enterprise Compliance Dashboard", desc: "One posture score, drillable by framework, business unit, and jurisdiction." },
+  { id: "predictive", module: "Module 6", icon: RadarIcon, label: "Predictive Regulatory Risk", desc: "Model-scored risk by topic, with the sample size and confidence shown — never a black box." },
+  { id: "cyber", module: "Module 7", icon: ShieldAlert, label: "Cybersecurity Monitoring", desc: "Your existing SIEM/EDR signal, correlated to the control and obligation it puts at risk." },
+  { id: "cloud", module: "Module 8", icon: Cloud, label: "Cloud Ecosystem Connect", desc: "Read-only, least-privilege connectors into AWS, GCP, Azure, and IBM Cloud." },
+  { id: "filegov", module: "Module 9", icon: FileCheck2, label: "File Governance & Scan", desc: "Drop in a document, get an immediate read on sensitive data and which obligation it triggers." },
+  { id: "gateway", module: "Module 10", icon: Route, label: "AI Gateway & Cost Governance", desc: "Routes every AI call across self-hosted and opt-in fallback models by cost, latency, and health — with full token and spend attribution for audit." },
 ];
 
 const TESTIMONIALS = [
@@ -415,7 +415,7 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
             const Icon = m.icon;
             return (
               <button
-                key={m.name}
+                key={m.label}
                 onClick={() => onSelectModule(m)}
                 style={{ textAlign: "left", cursor: "pointer", background: T.panel, border: `1px solid ${T.border}`, borderRadius: 13, padding: 20, font: "inherit", color: "inherit" }}
               >
@@ -425,7 +425,7 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
                   </div>
                   <ArrowRight size={14} color={T.mutedDim} />
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: T.text, marginBottom: 6 }}>{m.name}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: T.text, marginBottom: 6 }}>{m.label}</div>
                 <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.55 }}>{m.desc}</div>
               </button>
             );
