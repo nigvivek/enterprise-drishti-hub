@@ -5,6 +5,7 @@ import { connectIbm } from "./ibm.js";
 import { connectSnowflake } from "./snowflake.js";
 import { connectDatabricks, browseDatabricksSchemas, browseDatabricksTables } from "./databricks.js";
 import { listTestimonials, submitTestimonial } from "./testimonials.js";
+import { chatAssistant } from "./assistant.js";
 
 const HANDLERS = {
   aws: connectAws,
@@ -42,6 +43,22 @@ export default {
         return submitTestimonial(env, body, clientIp);
       }
       return json({ ok: false, error: "GET or POST required" }, 405);
+    }
+
+    if (url.pathname === "/api/assistant") {
+      if (request.method !== "POST") return json({ ok: false, error: "POST required" }, 405);
+      let body;
+      try {
+        body = await request.json();
+      } catch {
+        return json({ ok: false, error: "Invalid JSON body" }, 400);
+      }
+      try {
+        const result = await chatAssistant(body, env);
+        return json(result, result.ok === false ? 400 : 200);
+      } catch (e) {
+        return json({ ok: false, error: e.message || "Assistant failed" }, 500);
+      }
     }
 
     if (url.pathname.startsWith("/api/browse/")) {

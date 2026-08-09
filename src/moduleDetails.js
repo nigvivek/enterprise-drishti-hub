@@ -39,23 +39,17 @@ export const MODULE_DETAILS = {
     flow: ["Historical & control data", "Gradient-boosted scoring", "LLM narrative", "Confidence-scored brief"],
     exampleFlow: ["90-day control-drift history", "Model scores AML topic: 78", "LLM drafts risk brief", "Shown with n=47, wide CI"],
   },
-  cyber: {
+  riskanalysis: {
     commentary:
-      "Correlates alerts from your existing SIEM, EDR, and vulnerability scanners to the specific control and regulatory obligation each finding puts at risk — it doesn't replace those tools, it adds the compliance context they're missing. AI clusters related alerts and drafts first-pass breach-notification assessments; a human disposes every finding before it's final.",
-    flow: ["SIEM/EDR/vuln feeds", "Correlate to controls", "Cluster alerts", "Compliance-context view"],
-    exampleFlow: ["GuardDuty: S3 public read", "Mapped to control CFG-018", "Clustered with 2 similar alerts", "Compliance dashboard updated"],
+      "Scores counterparties, vendors, and portfolios not on a single attribute, but on how their connections combine — a jurisdiction change, an unverified beneficial-owner update, an overdue control, read together rather than in isolation. The scoring model reads from the same relationship graph the next module builds, and every score cites the specific factors driving it.",
+    flow: ["Entity + relationship data", "Contextual scoring model", "Cited risk drivers", "Human review"],
+    exampleFlow: ["Counterparty flagged in AML screen", "3 factors combined: UBO, jurisdiction, control status", "Score: 82 — cited drivers shown", "Routed to compliance owner"],
   },
-  cloud: {
+  relgraph: {
     commentary:
-      "Read-only, least-privilege connectors into AWS, GCP, Azure, and IBM Cloud discover resources and posture metadata — encryption status, network exposure, patch level — without ever pulling bulk data out. Findings normalize into one severity taxonomy regardless of provider, and feed directly into continuous control validation as live, not annual, evidence.",
-    flow: ["Read-only connector", "Discover resources", "Normalize findings", "Feed control validation"],
-    exampleFlow: ["Connect: AWS us-east-1", "Discover: 1,842 resources", "Normalized to common schema", "14 findings sent to controls"],
-  },
-  filegov: {
-    commentary:
-      "Upload a file or connect a document source, and a two-tier scan runs: fast deterministic pattern matching for structured sensitive data, then a self-hosted classifier for unstructured content the patterns miss. Every finding maps to the specific obligation it implicates and a human disposes it — confirmed, false positive, or accepted risk — before it's recorded.",
-    flow: ["Upload / connect file", "Pattern + model scan", "Map to obligation", "Human disposition"],
-    exampleFlow: ["Uploaded: vendor_contract.pdf", "Pattern scan: 2 emails found", "Mapped to GDPR Art. 5", "Owner disposition: pending"],
+      "Builds one graph connecting counterparties, vendors, jurisdictions, controls, and the regulations they fall under — so a change in one place (a new beneficial owner, a sub-processor added without notice) is visible everywhere it's relevant, instead of living in whichever system happened to record it first. Every other module reads from this same graph.",
+    flow: ["Connected entity data", "Resolve relationships", "Build shared graph", "Feed every module"],
+    exampleFlow: ["New vendor sub-processor added", "Linked to existing DPA + control", "Graph updated in place", "Risk analysis module notified"],
   },
   gateway: {
     commentary:

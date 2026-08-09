@@ -8,12 +8,13 @@ import {
   ShieldCheck, ScrollText, GitCompareArrows, ClipboardCheck, FileStack,
   LayoutDashboard, TrendingUp, Radar as RadarIcon, Bell, Search, ChevronRight,
   AlertTriangle, CheckCircle2, Clock, XCircle, ExternalLink, Sparkles,
-  ShieldAlert, Activity, Bug, Server, Cloud, Database, UploadCloud, FileCheck2,
-  Plug, Link2, FileText, Loader2, ScanLine, ArrowLeft,
-  Route, Zap, Wallet, GitBranch, CircleDot, ArrowRightLeft,
+  Activity, Database, ArrowLeft,
+  Route, Zap, Wallet, GitBranch, CircleDot, ArrowRightLeft, FlaskConical,
 } from "lucide-react";
 
 import { T, FONT_IMPORT } from "./tokens.js";
+import { getConnections } from "./store.js";
+import ChatAssistant from "./ChatAssistant.jsx";
 
 /* ---------------------------------------------------------------------- */
 /*  Mock data                                                              */
@@ -96,52 +97,33 @@ const predictiveTrend = [
   { m: "Aug", aml: 78, dora: 71, ai: 64 },
 ];
 
-const alerts = [
-  { id: 1, sev: "critical", title: "Unpatched critical CVE-2026-31442 on payment gateway host", asset: "pay-gw-03", age: "6d", control: "VULN-002" },
-  { id: 2, sev: "high", title: "Anomalous privileged login — outside geo-fence", asset: "okta:jsmith", age: "22m", control: "IAM-002" },
-  { id: 3, sev: "high", title: "TLS certificate expiring — customer API gateway", asset: "api-edge-01", age: "2h", control: "CFG-018" },
-  { id: 4, sev: "medium", title: "EDR agent offline > 24h", asset: "wkstn-4471", age: "1d", control: "END-009" },
-  { id: 5, sev: "medium", title: "New public S3 bucket detected", asset: "s3://reports-tmp", age: "41m", control: "CFG-018" },
+const riskAnalysisFindings = [
+  { id: 1, entity: "Meridian Trading Partners LLC", riskScore: 82, trend: "up", drivers: "3 flagged wire transfers · beneficial owner in sanctioned-adjacent jurisdiction", relatedControls: ["AML-014", "KYC-007"] },
+  { id: 2, entity: "Northbridge Capital Advisors", riskScore: 64, trend: "up", drivers: "Recent UBO change not yet re-verified · 2 overdue periodic reviews", relatedControls: ["KYC-007"] },
+  { id: 3, entity: "Vendor: CloudLedger Data Services", riskScore: 58, trend: "flat", drivers: "Sub-processor added without notice · DPA amendment pending", relatedControls: ["TPRM-009"] },
+  { id: 4, entity: "Consumer lending portfolio — Region 4", riskScore: 41, trend: "down", drivers: "Delinquency trending down after remediation; 1 control still in progress", relatedControls: ["CFG-018"] },
 ];
 
-const severityBreakdown = [
-  { name: "Critical", value: 3, color: T.red },
-  { name: "High", value: 11, color: T.amber },
-  { name: "Medium", value: 27, color: T.cyan },
-  { name: "Low", value: 44, color: T.mutedDim },
+const relationshipGraphNodes = [
+  { id: "org", label: "Your Entity", type: "org" },
+  { id: "cust1", label: "Meridian Trading Partners", type: "counterparty" },
+  { id: "cust2", label: "Northbridge Capital", type: "counterparty" },
+  { id: "vendor1", label: "CloudLedger Data Services", type: "vendor" },
+  { id: "reg1", label: "DORA (EU)", type: "regulation" },
+  { id: "reg2", label: "AML/BSA (US)", type: "regulation" },
+  { id: "ctrl1", label: "AML-014", type: "control" },
+  { id: "ctrl2", label: "TPRM-009", type: "control" },
+  { id: "jur1", label: "Jurisdiction: Cyprus", type: "jurisdiction" },
 ];
-
-const vulnAging = [
-  { bucket: "0-7d", count: 18 }, { bucket: "8-14d", count: 12 }, { bucket: "15-30d", count: 9 },
-  { bucket: "31-60d", count: 5 }, { bucket: "60d+", count: 3 },
-];
-
-const mttTrend = [
-  { m: "Feb", mttd: 42, mttr: 190 }, { m: "Mar", mttd: 38, mttr: 175 }, { m: "Apr", mttd: 35, mttr: 160 },
-  { m: "May", mttd: 31, mttr: 148 }, { m: "Jun", mttd: 28, mttr: 130 }, { m: "Jul", mttd: 24, mttr: 121 }, { m: "Aug", mttd: 21, mttr: 108 },
-];
-
-const cloudProviders = [
-  { id: "aws", name: "Amazon Web Services", short: "AWS", connected: true, method: "IAM role (cross-account, read-only)", accounts: 6, resources: 1842, findings: 14, lastScan: "9 min ago", color: "#E8A33D" },
-  { id: "gcp", name: "Google Cloud Platform", short: "GCP", connected: true, method: "Workload Identity Federation", accounts: 3, resources: 967, findings: 6, lastScan: "22 min ago", color: "#4ADE80" },
-  { id: "azure", name: "Microsoft Azure", short: "Azure", connected: true, method: "Service Principal + Reader role", accounts: 4, resources: 1310, findings: 11, lastScan: "14 min ago", color: "#22D3C5" },
-  { id: "ibm", name: "IBM Cloud", short: "IBM Cloud", connected: false, method: "API key + IAM service ID", accounts: 0, resources: 0, findings: 0, lastScan: "never", color: "#7C8CF8" },
-];
-
-const cloudFindings = [
-  { id: 1, provider: "AWS", svc: "S3", title: "Bucket policy allows public read", resource: "reports-tmp-prod", sev: "critical", control: "CFG-018" },
-  { id: 2, provider: "Azure", svc: "Storage", title: "Blob container missing encryption scope", resource: "edh-blob-store-02", sev: "high", control: "CFG-018" },
-  { id: 3, provider: "GCP", svc: "IAM", title: "Service account has Owner role (over-privileged)", resource: "svc-etl-pipeline@edh", sev: "high", control: "IAM-002" },
-  { id: 4, provider: "AWS", svc: "EC2", title: "Security group open to 0.0.0.0/0 on port 22", resource: "sg-04a1c9", sev: "medium", control: "CFG-018" },
-  { id: 5, provider: "Azure", svc: "Key Vault", title: "Soft-delete not enabled", resource: "edh-kv-prod", sev: "medium", control: "IAM-002" },
-];
-
-const connectedDatabases = [
-  { id: "db-1", name: "prod-payments-pg", engine: "PostgreSQL (RDS)", provider: "AWS", encryption: "AES-256 at rest", access: "Private VPC only", classification: "PCI scope", status: "pass" },
-  { id: "db-2", name: "customer-profiles-sql", engine: "Azure SQL Database", provider: "Azure", encryption: "TDE enabled", access: "Public endpoint + firewall rules", classification: "PII", status: "drift" },
-  { id: "db-3", name: "analytics-bq", engine: "BigQuery", provider: "GCP", encryption: "Google-managed keys", access: "Org-level IAM", classification: "Internal", status: "pass" },
-  { id: "db-4", name: "legacy-ledger-db2", engine: "Db2 on Cloud", provider: "IBM Cloud", encryption: "Unknown — not yet scanned", access: "Unknown", classification: "Unclassified", status: "attest" },
-  { id: "db-5", name: "sessions-cache-redis", engine: "ElastiCache Redis", provider: "AWS", encryption: "In-transit TLS only", access: "Private VPC only", classification: "Internal", status: "pass" },
+const relationshipGraphEdges = [
+  { from: "org", to: "cust1", label: "counterparty" },
+  { from: "org", to: "cust2", label: "counterparty" },
+  { from: "org", to: "vendor1", label: "vendor" },
+  { from: "cust1", to: "jur1", label: "beneficial owner in" },
+  { from: "cust1", to: "ctrl1", label: "monitored by" },
+  { from: "vendor1", to: "ctrl2", label: "governed by" },
+  { from: "vendor1", to: "reg1", label: "in scope of" },
+  { from: "ctrl1", to: "reg2", label: "satisfies" },
 ];
 
 const gatewayProviders = [
@@ -236,8 +218,16 @@ function Pill({ children, tone = "neutral" }) {
 
 function AiTag() {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, color: T.indigo, background: "#161B33", border: `1px solid #2B3568`, padding: "2px 7px", borderRadius: 6, fontFamily: "'IBM Plex Mono', monospace" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, color: T.indigo, background: T.indigoDim, border: `1px solid ${T.indigo}55`, padding: "2px 7px", borderRadius: 6, fontFamily: "'IBM Plex Mono', monospace" }}>
       <Sparkles size={10} /> AI-drafted · cited
+    </span>
+  );
+}
+
+function SimTag() {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, color: T.mutedDim, background: T.panelAlt, border: `1px solid ${T.border}`, padding: "2px 7px", borderRadius: 6, fontFamily: "'IBM Plex Mono', monospace" }}>
+      <FlaskConical size={10} /> Simulated — not from a live source
     </span>
   );
 }
@@ -298,7 +288,7 @@ function Overview() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
-        <Panel eyebrow="Coverage by framework" title="Control status across regulatory frameworks">
+        <Panel eyebrow="Coverage by framework" title="Control status across regulatory frameworks" right={<SimTag />}>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {frameworkCoverage.map((f) => (
               <div key={f.name}>
@@ -316,7 +306,7 @@ function Overview() {
           </div>
         </Panel>
 
-        <Panel eyebrow="Countdown" title="Upcoming regulatory deadlines">
+        <Panel eyebrow="Countdown" title="Upcoming regulatory deadlines" right={<SimTag />}>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {deadlines.map((d) => (
               <div key={d.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 10, borderBottom: `1px solid ${T.border}` }}>
@@ -389,7 +379,7 @@ function Impact() {
         <KPI label="No control exists" value="2" tone="bad" />
         <KPI label="Avg. time to remediation plan" value="3.2d" tone="good" />
       </div>
-      <Panel eyebrow="AI-proposed, human-approved" title="Compliance impact findings">
+      <Panel eyebrow="AI-proposed, human-approved" title="Compliance impact findings" right={<SimTag />}>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
             <thead>
@@ -436,7 +426,7 @@ function Controls() {
         <KPI label="Failing" value="1" tone="bad" />
         <KPI label="Auto-checked vs. attested" value="81 / 19%" sub="Machine-checkable coverage" />
       </div>
-      <Panel eyebrow="Continuous validation" title="Control checks — live status">
+      <Panel eyebrow="Continuous validation" title="Control checks — live status" right={<SimTag />}>
         <div style={{ display: "flex", flexDirection: "column" }}>
           {controlsList.map((c) => {
             const Icon = icons[c.status];
@@ -475,7 +465,7 @@ function Evidence() {
         <KPI label="Awaiting sign-off" value="2" tone="warn" />
         <KPI label="Hash-chain verified" value="100%" tone="good" />
       </div>
-      <Panel eyebrow="WORM-stored · hash-chained" title="Audit evidence packages">
+      <Panel eyebrow="WORM-stored · hash-chained" title="Audit evidence packages" right={<SimTag />}>
         <div style={{ display: "flex", flexDirection: "column" }}>
           {evidencePackages.map((e) => (
             <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 0", borderBottom: `1px solid ${T.border}` }}>
@@ -525,7 +515,7 @@ function Predictive() {
           </LineChart>
         </ResponsiveContainer>
       </Panel>
-      <Panel eyebrow="Gradient-boosted risk model" title="Risk by topic">
+      <Panel eyebrow="Gradient-boosted risk model" title="Risk by topic" right={<SimTag />}>
         <div style={{ display: "flex", flexDirection: "column" }}>
           {predictiveRisks.map((r) => (
             <div key={r.topic} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 0", borderBottom: `1px solid ${T.border}` }}>
@@ -547,394 +537,140 @@ function Predictive() {
 }
 
 /* ---------------------------------------------------------------------- */
-/*  Tab: Cybersecurity Monitoring                                          */
+/*  Tab: AI-Powered Contextual Risk Analysis (Module 7)                    */
 /* ---------------------------------------------------------------------- */
-function Cyber() {
-  const sevColor = { critical: T.red, high: T.amber, medium: T.cyan, low: T.mutedDim };
+function RiskAnalysis({ connections = [] }) {
+  const liveConnections = connections.filter((c) => c.status === "connected");
+  const statusColor = { up: T.red, down: T.green, flat: T.mutedDim };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-        <KPI label="Open alerts" value="85" icon={ShieldAlert} />
-        <KPI label="MTTD" value="21m" tone="good" sub="↓ from 42m" icon={Activity} />
-        <KPI label="MTTR" value="1.8d" tone="good" sub="↓ from 190m avg" icon={Server} />
-        <KPI label="Compliance-linked incidents" value="4" tone="warn" sub="Mapped to control obligations" />
+        <KPI label="Connected data sources" value={liveConnections.length} sub="Real — from your workspace connections" icon={Route} />
+        <KPI label="Entities monitored" value="4" tone="warn" sub="Simulated example set" />
+        <KPI label="High-risk entities" value={2} tone="bad" sub="Simulated example set" />
+        <KPI label="Avg. contextual risk score" value="61" tone="warn" sub="Simulated example set" />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
-        <Panel eyebrow="Live" title="Alert stream — correlated to controls">
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {alerts.map((a) => (
-              <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: `1px solid ${T.border}` }}>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 999, background: sevColor[a.sev] }} />
-                  <div>
-                    <div style={{ fontSize: 12.5, color: T.text }}>{a.title}</div>
-                    <div style={{ fontSize: 11, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{a.asset} · linked to {a.control}</div>
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <span style={{ fontSize: 11, color: T.mutedDim }}>{a.age}</span>
-                  <Pill tone={a.sev === "critical" ? "bad" : a.sev === "high" ? "warn" : "neutral"}>{a.sev}</Pill>
-                </div>
+      <Panel eyebrow="Real" title="Data sources feeding this analysis">
+        {liveConnections.length === 0 ? (
+          <div style={{ fontSize: 12.5, color: T.mutedDim }}>
+            No live connections yet. Connect a cloud, database, or file source from the workspace to feed real data
+            into this analysis — until then, the findings below are a simulated illustration of what this module does.
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {liveConnections.map((c) => (
+              <div key={c.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "8px 10px", background: T.panelAlt, borderRadius: 8 }}>
+                <span style={{ color: T.text }}>{c.name}</span>
+                <span style={{ color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{c.resources?.length ? `${c.resources.length} resources` : c.category}</span>
               </div>
             ))}
-          </div>
-        </Panel>
-
-        <Panel eyebrow="By severity" title="Open alert mix">
-          <ResponsiveContainer width="100%" height={190}>
-            <PieChart>
-              <Pie data={severityBreakdown} dataKey="value" nameKey="name" innerRadius={48} outerRadius={75} paddingAngle={2}>
-                {severityBreakdown.map((s, i) => <Cell key={i} fill={s.color} />)}
-              </Pie>
-              <Tooltip contentStyle={{ background: T.panelAlt, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginTop: 6 }}>
-            {severityBreakdown.map((s) => (
-              <div key={s.name} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: T.muted }}>
-                <span style={{ width: 8, height: 8, borderRadius: 999, background: s.color }} />{s.name}
-              </div>
-            ))}
-          </div>
-        </Panel>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <Panel eyebrow="Aging" title="Unpatched vulnerability age">
-          <ResponsiveContainer width="100%" height={190}>
-            <BarChart data={vulnAging}>
-              <CartesianGrid stroke={T.border} vertical={false} />
-              <XAxis dataKey="bucket" tick={{ fill: T.muted, fontSize: 11 }} axisLine={{ stroke: T.border }} tickLine={false} />
-              <YAxis tick={{ fill: T.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: T.panelAlt, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }} />
-              <Bar dataKey="count" fill={T.cyan} radius={[5, 5, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Panel>
-        <Panel eyebrow="Detection & response" title="MTTD / MTTR trend">
-          <ResponsiveContainer width="100%" height={190}>
-            <LineChart data={mttTrend}>
-              <CartesianGrid stroke={T.border} vertical={false} />
-              <XAxis dataKey="m" tick={{ fill: T.muted, fontSize: 11 }} axisLine={{ stroke: T.border }} tickLine={false} />
-              <YAxis tick={{ fill: T.muted, fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: T.panelAlt, border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }} />
-              <Line type="monotone" dataKey="mttd" name="MTTD (min)" stroke={T.cyan} strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="mttr" name="MTTR (min)" stroke={T.indigo} strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </Panel>
-      </div>
-    </div>
-  );
-}
-
-/* ---------------------------------------------------------------------- */
-/*  Tab: Cloud Ecosystem Connect (Module 8)                                */
-/* ---------------------------------------------------------------------- */
-function CloudEcosystem() {
-  const [providers, setProviders] = useState(cloudProviders);
-  const [connecting, setConnecting] = useState(null);
-
-  const toggle = (id) => {
-    const p = providers.find((x) => x.id === id);
-    if (p.connected) {
-      setProviders(providers.map((x) => (x.id === id ? { ...x, connected: false, accounts: 0, resources: 0, findings: 0, lastScan: "never" } : x)));
-      return;
-    }
-    setConnecting(id);
-    setTimeout(() => {
-      setProviders((prev) => prev.map((x) => (x.id === id ? { ...x, connected: true, accounts: x.accounts || 2, resources: x.resources || 400, findings: x.findings || 5, lastScan: "just now" } : x)));
-      setConnecting(null);
-    }, 1400);
-  };
-
-  const totalResources = providers.filter(p => p.connected).reduce((s, p) => s + p.resources, 0);
-  const totalFindings = providers.filter(p => p.connected).reduce((s, p) => s + p.findings, 0);
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-        <KPI label="Clouds connected" value={`${providers.filter(p => p.connected).length}/${providers.length}`} icon={Cloud} />
-        <KPI label="Resources monitored" value={totalResources.toLocaleString()} icon={Server} />
-        <KPI label="Open cloud findings" value={totalFindings} tone="warn" icon={AlertTriangle} />
-        <KPI label="Databases discovered" value={connectedDatabases.length} icon={Database} />
-      </div>
-
-      <Panel eyebrow="API gateway integration · read-only, least-privilege" title="Connect your cloud ecosystem">
-        <p style={{ fontSize: 12, color: T.muted, marginBottom: 16, lineHeight: 1.6 }}>
-          EDH connects to each provider through its native API gateway using short-lived, read-only credentials
-          (cross-account IAM roles, workload identity federation, or service principals — never long-lived static keys
-          where the provider supports better). No workload data is copied out; EDH pulls configuration and posture
-          metadata only, and every check runs from inside your own network boundary.
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 14 }}>
-          {providers.map((p) => (
-            <div key={p.id} style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, background: T.panelAlt }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: `${p.color}22`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Cloud size={15} color={p.color} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{p.short}</div>
-                    <div style={{ fontSize: 10.5, color: T.mutedDim }}>{p.name}</div>
-                  </div>
-                </div>
-                <Pill tone={p.connected ? "good" : "neutral"}>{p.connected ? "connected" : "not connected"}</Pill>
-              </div>
-              <div style={{ fontSize: 11, color: T.mutedDim, marginTop: 10, fontFamily: "IBM Plex Mono" }}>{p.method}</div>
-              {p.connected && (
-                <div style={{ display: "flex", gap: 14, marginTop: 10, fontSize: 11.5, color: T.muted }}>
-                  <span>{p.accounts} accounts</span>
-                  <span>{p.resources.toLocaleString()} resources</span>
-                  <span style={{ color: p.findings > 10 ? T.amber : T.muted }}>{p.findings} findings</span>
-                </div>
-              )}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
-                <span style={{ fontSize: 10.5, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>last scan: {p.lastScan}</span>
-                <button
-                  onClick={() => toggle(p.id)}
-                  disabled={connecting === p.id}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 600, padding: "6px 12px", borderRadius: 8,
-                    cursor: "pointer", border: `1px solid ${p.connected ? T.border : T.borderLight}`,
-                    background: p.connected ? "transparent" : T.cyanDim, color: p.connected ? T.mutedDim : T.cyan,
-                  }}
-                >
-                  {connecting === p.id ? <Loader2 size={12} className="spin" /> : <Plug size={12} />}
-                  {connecting === p.id ? "Connecting…" : p.connected ? "Disconnect" : "Connect"}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Panel>
-
-      <Panel eyebrow="Aggregated across connected clouds" title="Cross-cloud security findings → mapped to controls">
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {cloudFindings.map((f) => (
-            <div key={f.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: `1px solid ${T.border}` }}>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <Pill tone="indigo">{f.provider}</Pill>
-                <div>
-                  <div style={{ fontSize: 12.5, color: T.text }}>{f.title}</div>
-                  <div style={{ fontSize: 11, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{f.svc} · {f.resource} · linked to {f.control}</div>
-                </div>
-              </div>
-              <Pill tone={f.sev === "critical" ? "bad" : f.sev === "high" ? "warn" : "neutral"}>{f.sev}</Pill>
-            </div>
-          ))}
-        </div>
-      </Panel>
-
-      <Panel eyebrow="Discovered via cloud connectors · read-only" title="Databases inside the connected ecosystem">
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
-            <thead>
-              <tr style={{ textAlign: "left", color: T.mutedDim, fontFamily: "IBM Plex Mono", fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                <th style={{ padding: "0 10px 10px 0" }}>Database</th>
-                <th style={{ padding: "0 10px 10px" }}>Engine</th>
-                <th style={{ padding: "0 10px 10px" }}>Provider</th>
-                <th style={{ padding: "0 10px 10px" }}>Encryption</th>
-                <th style={{ padding: "0 10px 10px" }}>Access</th>
-                <th style={{ padding: "0 10px 10px" }}>Data class</th>
-                <th style={{ padding: "0 0 10px" }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {connectedDatabases.map((d) => (
-                <tr key={d.id} style={{ borderTop: `1px solid ${T.border}` }}>
-                  <td style={{ padding: "10px 10px 10px 0", color: T.text, display: "flex", alignItems: "center", gap: 7 }}><Database size={12} color={T.mutedDim} />{d.name}</td>
-                  <td style={{ padding: "10px", color: T.muted }}>{d.engine}</td>
-                  <td style={{ padding: "10px", color: T.muted }}>{d.provider}</td>
-                  <td style={{ padding: "10px", color: T.muted }}>{d.encryption}</td>
-                  <td style={{ padding: "10px", color: T.muted }}>{d.access}</td>
-                  <td style={{ padding: "10px" }}><Pill tone={d.classification === "PII" || d.classification === "PCI scope" ? "warn" : "neutral"}>{d.classification}</Pill></td>
-                  <td style={{ padding: "10px" }}><Pill tone={statusTone[d.status]}>{d.status}</Pill></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div style={{ fontSize: 11, color: T.mutedDim, marginTop: 12 }}>
-          EDH connects to each database read-only, through the cloud provider's own network boundary (VPC peering / private
-          endpoint) — no direct internet-facing credentials are stored, and no row-level data is extracted for this inventory
-          view. Row-level scanning for sensitive data happens only when you explicitly run a classification scan.
-        </div>
-      </Panel>
-    </div>
-  );
-}
-
-/* ---------------------------------------------------------------------- */
-/*  Tab: File Governance & Scan (Module 9)                                 */
-/* ---------------------------------------------------------------------- */
-function scanTextForFindings(text) {
-  const findings = [];
-  const patterns = [
-    { type: "Email address", re: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, obligation: "GDPR Art. 5 & 32 · CCPA §1798.100" },
-    { type: "Possible SSN", re: /\b\d{3}-\d{2}-\d{4}\b/g, obligation: "GDPR Art. 9 (special category) · CCPA" },
-    { type: "Possible credit card number", re: /\b(?:\d[ -]*?){13,16}\b/g, obligation: "PCI DSS Req. 3" },
-    { type: "Possible phone number", re: /\b\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4}\b/g, obligation: "GDPR Art. 5" },
-    { type: "API key / secret-like token", re: /\b(?:sk|pk|key|secret|token)[-_A-Za-z0-9]{10,}\b/gi, obligation: "Internal — secrets in a document is itself a control failure" },
-    { type: "IP address", re: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, obligation: "Internal network exposure — review before external sharing" },
-  ];
-  patterns.forEach((p) => {
-    const matches = text.match(p.re);
-    if (matches && matches.length) findings.push({ type: p.type, count: matches.length, obligation: p.obligation, sample: matches[0] });
-  });
-  return findings;
-}
-
-function FileGovernance() {
-  const [file, setFile] = useState(null);
-  const [status, setStatus] = useState("idle"); // idle | reading | scanning | done
-  const [result, setResult] = useState(null);
-  const [dragOver, setDragOver] = useState(false);
-
-  const handleFile = (f) => {
-    if (!f) return;
-    setFile(f);
-    setResult(null);
-    setStatus("reading");
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = typeof reader.result === "string" ? reader.result : "";
-      setStatus("scanning");
-      setTimeout(() => {
-        const findings = scanTextForFindings(text);
-        const riskScore = Math.min(96, findings.reduce((s, x) => s + x.count * 6, 8));
-        setResult({
-          findings,
-          riskScore,
-          controlsMapped: findings.length ? Math.min(findings.length + 1, 5) : 1,
-          words: text ? text.trim().split(/\s+/).length : 0,
-        });
-        setStatus("done");
-      }, 900);
-    };
-    reader.onerror = () => setStatus("done");
-    const readableTypes = ["text/", "application/json", "application/csv"];
-    if (readableTypes.some((t) => f.type.startsWith(t)) || f.name.match(/\.(txt|csv|json|md|log|yaml|yml)$/i)) {
-      reader.readAsText(f);
-    } else {
-      // Non-text formats (pdf/docx/xlsx): metadata-level mock scan since parsing needs a backend
-      setTimeout(() => {
-        setStatus("scanning");
-        setTimeout(() => {
-          setResult({
-            findings: [{ type: "Document requires backend parsing", count: 1, obligation: "Connect the docx/pdf parsing service (see architecture.md §3.4)", sample: f.name }],
-            riskScore: 35,
-            controlsMapped: 1,
-            words: null,
-            unsupported: true,
-          });
-          setStatus("done");
-        }, 900);
-      }, 300);
-    }
-  };
-
-  const reset = () => { setFile(null); setResult(null); setStatus("idle"); };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-        <KPI label="Files scanned this month" value="128" icon={FileCheck2} />
-        <KPI label="Avg. sensitive findings / file" value="3.4" tone="warn" icon={ScanLine} />
-        <KPI label="Currently connected sources" value="Local upload" icon={UploadCloud} />
-      </div>
-
-      <Panel eyebrow="Drag & drop, or connect a source" title="Upload a file to run governance & compliance analysis">
-        <div
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files?.[0]); }}
-          style={{
-            border: `1.5px dashed ${dragOver ? T.cyan : T.borderLight}`, borderRadius: 12, padding: "34px 20px",
-            textAlign: "center", background: dragOver ? T.cyanDim : T.panelAlt, transition: "all .15s",
-          }}
-        >
-          <UploadCloud size={26} color={dragOver ? T.cyan : T.mutedDim} style={{ marginBottom: 10 }} />
-          <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>Drop a file here, or</div>
-          <label style={{ display: "inline-block", marginTop: 10, cursor: "pointer" }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: T.cyan, border: `1px solid ${T.cyan}55`, padding: "7px 14px", borderRadius: 8, background: T.cyanDim }}>
-              Browse files
-            </span>
-            <input type="file" style={{ display: "none" }} onChange={(e) => handleFile(e.target.files?.[0])} />
-          </label>
-          <div style={{ fontSize: 11, color: T.mutedDim, marginTop: 12 }}>
-            .txt · .csv · .json · .log · .yaml scan fully in-browser for this prototype. .pdf / .docx / .xlsx route to the
-            backend parsing service once connected (see architecture.md).
-          </div>
-
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
-            <Pill tone="neutral"><Link2 size={10} style={{ marginRight: 4, verticalAlign: -1 }} />Connect SharePoint</Pill>
-            <Pill tone="neutral"><Link2 size={10} style={{ marginRight: 4, verticalAlign: -1 }} />Connect Google Drive</Pill>
-            <Pill tone="neutral"><Link2 size={10} style={{ marginRight: 4, verticalAlign: -1 }} />Connect S3 bucket</Pill>
-          </div>
-        </div>
-
-        {file && (
-          <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: T.panelAlt, border: `1px solid ${T.border}`, borderRadius: 10 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <FileText size={16} color={T.mutedDim} />
-              <div>
-                <div style={{ fontSize: 12.5, color: T.text }}>{file.name}</div>
-                <div style={{ fontSize: 11, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{(file.size / 1024).toFixed(1)} KB · {file.type || "unknown type"}</div>
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              {status !== "idle" && status !== "done" && (
-                <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: T.cyan }}>
-                  <Loader2 size={13} className="spin" /> {status === "reading" ? "Reading file…" : "Running compliance scan…"}
-                </span>
-              )}
-              {status === "done" && <Pill tone="good">scan complete</Pill>}
-              <button onClick={reset} style={{ fontSize: 11.5, color: T.mutedDim, background: "none", border: `1px solid ${T.border}`, borderRadius: 7, padding: "5px 10px", cursor: "pointer" }}>Clear</button>
-            </div>
           </div>
         )}
       </Panel>
 
-      {result && (
-        <>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <KPI label="Risk score" value={result.riskScore} tone={result.riskScore > 60 ? "bad" : result.riskScore > 30 ? "warn" : "good"} icon={ShieldAlert} />
-            <KPI label="Sensitive data findings" value={result.findings.reduce((s, f) => s + f.count, 0)} tone={result.findings.length ? "warn" : "good"} icon={ScanLine} />
-            <KPI label="Obligations mapped" value={result.controlsMapped} icon={GitCompareArrows} />
-            {result.words != null && <KPI label="Words scanned" value={result.words.toLocaleString()} icon={FileText} />}
-          </div>
-
-          <Panel eyebrow="AI-assisted classification, in-browser pattern scan" title={`Governance & compliance findings — ${file.name}`}>
-            <AiTag />
-            {result.findings.length === 0 ? (
-              <div style={{ marginTop: 14, fontSize: 13, color: T.green, display: "flex", alignItems: "center", gap: 8 }}>
-                <CheckCircle2 size={16} /> No obvious sensitive-data patterns detected in this file.
+      <Panel eyebrow="Simulated example" title="Contextual risk findings" right={<SimTag />}>
+        <p style={{ fontSize: 12, color: T.muted, marginBottom: 16, lineHeight: 1.6 }}>
+          This is a worked example of what contextual risk analysis produces once connected to real counterparty,
+          transaction, and vendor data: entities scored not on a single attribute, but on how their connections —
+          jurisdiction, ownership changes, control status — combine into an overall risk picture.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {riskAnalysisFindings.map((f) => (
+            <div key={f.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: `1px solid ${T.border}` }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{f.entity}</div>
+                <div style={{ fontSize: 11.5, color: T.mutedDim, marginTop: 2 }}>{f.drivers}</div>
+                <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                  {f.relatedControls.map((c) => <Pill key={c} tone="neutral">{c}</Pill>)}
+                </div>
               </div>
-            ) : (
-              <div style={{ marginTop: 12, display: "flex", flexDirection: "column" }}>
-                {result.findings.map((f, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: `1px solid ${T.border}` }}>
-                    <div>
-                      <div style={{ fontSize: 12.5, color: T.text, fontWeight: 500 }}>{f.type}{f.count > 1 ? ` × ${f.count}` : ""}</div>
-                      <div style={{ fontSize: 11, color: T.mutedDim, marginTop: 2 }}>Maps to: {f.obligation}</div>
-                    </div>
-                    <Pill tone="warn">{f.count} match{f.count > 1 ? "es" : ""}</Pill>
-                  </div>
-                ))}
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <ArrowRightLeft size={12} color={statusColor[f.trend]} style={{ transform: f.trend === "down" ? "scaleY(-1)" : "none" }} />
+                <div style={{ width: 40, textAlign: "center", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: f.riskScore > 70 ? T.red : f.riskScore > 45 ? T.amber : T.green }}>{f.riskScore}</div>
               </div>
-            )}
-            <div style={{ marginTop: 14, fontSize: 11, color: T.mutedDim, lineHeight: 1.6 }}>
-              This is a pattern-level scan running client-side for the prototype. Production classification (module 3.2 /
-              3.4 in architecture.md) uses the self-hosted embedding + classification model for higher-recall PII/PHI/PCI
-              detection, and writes results to the evidence store with the same human sign-off gate as every other AI
-              output in EDH.
             </div>
-          </Panel>
-        </>
-      )}
+          ))}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/*  Tab: Enterprise Context & Relationship Graph (Module 8)                */
+/* ---------------------------------------------------------------------- */
+function RelationshipGraph({ connections = [] }) {
+  const liveConnections = connections.filter((c) => c.status === "connected");
+  const typeColor = { org: T.coral, counterparty: T.amber, vendor: T.cyan, regulation: T.indigo, control: T.green, jurisdiction: T.red };
+
+  // Simple manual layout — original composition, not force-directed physics, kept
+  // deterministic so the same example graph always renders the same way.
+  const positions = {
+    org: { x: 300, y: 170 }, cust1: { x: 100, y: 60 }, cust2: { x: 100, y: 280 },
+    vendor1: { x: 500, y: 60 }, reg1: { x: 560, y: 170 }, reg2: { x: 480, y: 290 },
+    ctrl1: { x: 260, y: 30 }, ctrl2: { x: 500, y: 300 }, jur1: { x: 60, y: 170 },
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+        <KPI label="Connected data sources" value={liveConnections.length} sub="Real — from your workspace connections" icon={Route} />
+        <KPI label="Entities in graph" value={relationshipGraphNodes.length} tone="warn" sub="Simulated example set" />
+        <KPI label="Relationships mapped" value={relationshipGraphEdges.length} tone="warn" sub="Simulated example set" />
+      </div>
+
+      <Panel eyebrow="Real" title="Data sources feeding this graph">
+        {liveConnections.length === 0 ? (
+          <div style={{ fontSize: 12.5, color: T.mutedDim }}>
+            No live connections yet. The example graph below shows the kind of relationships this module maps once
+            real counterparty, vendor, and regulatory data is connected.
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {liveConnections.map((c) => <Pill key={c.id} tone="info">{c.name}</Pill>)}
+          </div>
+        )}
+      </Panel>
+
+      <Panel eyebrow="Simulated example" title="Entity relationship map" right={<SimTag />}>
+        <p style={{ fontSize: 12, color: T.muted, marginBottom: 16, lineHeight: 1.6 }}>
+          A single graph connecting counterparties, vendors, jurisdictions, controls, and the regulations they fall
+          under — the same underlying model every other module reads from, visualized directly. This is a worked
+          example; a live graph populates automatically as real entity data connects.
+        </p>
+        <svg viewBox="0 0 620 340" width="100%" style={{ maxWidth: 620 }}>
+          {relationshipGraphEdges.map((e, i) => {
+            const a = positions[e.from], b = positions[e.to];
+            return (
+              <g key={i}>
+                <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={T.borderLight} strokeWidth="1.2" />
+                <text x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 4} textAnchor="middle" fontSize="8.5" fill={T.mutedDim} fontFamily="IBM Plex Mono">{e.label}</text>
+              </g>
+            );
+          })}
+          {relationshipGraphNodes.map((n) => {
+            const p = positions[n.id];
+            const color = typeColor[n.type] || T.mutedDim;
+            return (
+              <g key={n.id}>
+                <circle cx={p.x} cy={p.y} r={n.type === "org" ? 34 : 26} fill={T.panel} stroke={color} strokeWidth="1.8" />
+                <text x={p.x} y={p.y + 3} textAnchor="middle" fontSize="9" fontWeight="600" fontFamily="'Space Grotesk', sans-serif" fill={T.text}>
+                  {n.label.length > 16 ? n.label.slice(0, 14) + "…" : n.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 14 }}>
+          {Object.entries(typeColor).map(([type, color]) => (
+            <div key={type} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10.5, color: T.muted }}>
+              <span style={{ width: 8, height: 8, borderRadius: 999, background: color }} /> {type}
+            </div>
+          ))}
+        </div>
+      </Panel>
     </div>
   );
 }
@@ -958,7 +694,7 @@ function Gateway() {
         <KPI label="Failover events (7d)" value={gatewayFailoverEvents.length} tone="warn" icon={ArrowRightLeft} />
       </div>
 
-      <Panel eyebrow="Routing & failover" title="Provider pool — cost, latency & availability">
+      <Panel eyebrow="Routing & failover" title="Provider pool — cost, latency & availability" right={<SimTag />}>
         <p style={{ fontSize: 12, color: T.muted, marginBottom: 16, lineHeight: 1.6 }}>
           Self-hosted models are the default route for every AI call in EDH. External providers are strictly
           opt-in fallbacks a customer can enable for specific low-sensitivity tasks — never a silent default —
@@ -1011,7 +747,7 @@ function Gateway() {
         </div>
       </Panel>
 
-      <Panel eyebrow="Live" title="Recent failover & circuit-breaker events">
+      <Panel eyebrow="Live" title="Recent failover & circuit-breaker events" right={<SimTag />}>
         <div style={{ display: "flex", flexDirection: "column" }}>
           {gatewayFailoverEvents.map((e, i) => (
             <div key={i} style={{ display: "flex", gap: 12, padding: "11px 0", borderBottom: `1px solid ${T.border}` }}>
@@ -1061,7 +797,7 @@ function Gateway() {
         </Panel>
       </div>
 
-      <Panel eyebrow="Auditing" title="Token & cost attribution by module">
+      <Panel eyebrow="Auditing" title="Token & cost attribution by module" right={<SimTag />}>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
             <thead>
@@ -1095,7 +831,8 @@ function Gateway() {
 /* ---------------------------------------------------------------------- */
 /*  App shell                                                              */
 /* ---------------------------------------------------------------------- */
-export default function EnterpriseDrishtiHub({ onBack, enabledModuleIds, activeProject }) {
+export default function EnterpriseDrishtiHub({ onBack, enabledModuleIds, activeProject, email, connections: connectionsProp }) {
+  const connections = connectionsProp || (email ? getConnections(email) : []);
   const NAV = enabledModuleIds && enabledModuleIds.length
     ? MODULE_LIST.filter((m) => enabledModuleIds.includes(m.id))
     : MODULE_LIST;
@@ -1104,8 +841,9 @@ export default function EnterpriseDrishtiHub({ onBack, enabledModuleIds, activeP
 
   const panels = {
     overview: <Overview />, regintel: <RegIntel />, impact: <Impact />,
-    controls: <Controls />, evidence: <Evidence />, predictive: <Predictive />, cyber: <Cyber />,
-    cloud: <CloudEcosystem />, filegov: <FileGovernance />, gateway: <Gateway />,
+    controls: <Controls />, evidence: <Evidence />, predictive: <Predictive />,
+    riskanalysis: <RiskAnalysis connections={connections} />, relgraph: <RelationshipGraph connections={connections} />,
+    gateway: <Gateway />,
   };
 
   return (
@@ -1149,6 +887,22 @@ export default function EnterpriseDrishtiHub({ onBack, enabledModuleIds, activeP
           })}
         </div>
 
+        {connections.filter((c) => c.status === "connected").length > 0 && (
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${T.border}` }}>
+            <div style={{ fontSize: 10, color: T.mutedDim, fontFamily: "IBM Plex Mono", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8, padding: "0 4px" }}>
+              Connected sources
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, maxHeight: 160, overflowY: "auto" }}>
+              {connections.filter((c) => c.status === "connected").map((c) => (
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 8px", fontSize: 11, color: T.muted }}>
+                  <Database size={11} color={T.cyan} style={{ flexShrink: 0 }} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {onBack && (
           <button
             onClick={onBack}
@@ -1191,6 +945,11 @@ export default function EnterpriseDrishtiHub({ onBack, enabledModuleIds, activeP
         </div>
         <div style={{ padding: "22px 28px 40px" }}>{panels[tab]}</div>
       </div>
+      <ChatAssistant
+        onAction={(action) => {
+          if (NAV.some((n) => n.id === action.target)) setTab(action.target);
+        }}
+      />
     </div>
   );
 }

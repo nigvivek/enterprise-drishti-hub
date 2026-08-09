@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   ShieldCheck, LogOut, FolderPlus, Folder, Cloud, Database, FileText, Check,
-  Loader2, ExternalLink, History, Save, Rocket, ChevronDown, Lock,
+  Loader2, ExternalLink, History, Save, Rocket, ChevronDown, Lock, FlaskConical, ArrowRight,
 } from "lucide-react";
 import { T, FONT_IMPORT } from "./tokens.js";
 import { MODULE_LIST } from "./modules.js";
@@ -12,6 +12,7 @@ import {
   getHistory, addHistoryEntry,
 } from "./store.js";
 import DataLayerDiagram from "./DataLayerDiagram.jsx";
+import ChatAssistant from "./ChatAssistant.jsx";
 
 const CONNECTOR_DEFS = [
   { id: "aws", name: "Amazon Web Services", category: "cloud", icon: Cloud, live: true,
@@ -381,6 +382,8 @@ export default function Workspace({ email, activeProject, onActiveProjectChange,
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [signInPrompt, setSignInPrompt] = useState(false);
   const [scopeNotice, setScopeNotice] = useState("");
+  const [step, setStep] = useState(1); // 1: project, 2: connect, 3: modules, 4: validate & launch
+  const [validation, setValidation] = useState(null);
 
   // In-memory only (never written to localStorage) — lets "Browse" calls reuse
   // the credentials from the most recent successful connect for this provider,
@@ -454,6 +457,23 @@ export default function Workspace({ email, activeProject, onActiveProjectChange,
     setProjects(getProjects(email));
     setSaveNotice("Saved to project.");
     setTimeout(() => setSaveNotice(""), 2500);
+  };
+
+  const liveConns = connections.filter((c) => c.status === "connected");
+  const totalResources = liveConns.reduce((s, c) => s + (c.resources?.length || 0), 0);
+  const scopedConns = liveConns.filter((c) => c.validationScope).length;
+
+  const runValidation = () => {
+    setValidation({
+      connectionsChecked: liveConns.length,
+      resourcesInScope: totalResources,
+      scopedConnections: scopedConns,
+      modulesSelected: selectedModules.length,
+      // Readiness is a simple, transparent heuristic over real inputs above —
+      // not a model score. It's meant to flag gaps, not simulate an audit result.
+      readiness: liveConns.length === 0 ? 0 : Math.min(100, 40 + liveConns.length * 15 + scopedConns * 10),
+      ranAt: new Date().toISOString(),
+    });
   };
 
   const launch = () => {
@@ -543,59 +563,157 @@ export default function Workspace({ email, activeProject, onActiveProjectChange,
       </div>
 
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "36px 28px 80px" }}>
-        {/* Hero row: diagram + positioning */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 32, alignItems: "center", marginBottom: 40 }}>
-          <div>
-            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.amber, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Your workspace</div>
-            <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 26, margin: "0 0 10px" }}>
-              EDH sits on top of your data layer — connect it, then decide what runs.
-            </h1>
-            <p style={{ fontSize: 13.5, color: T.muted, lineHeight: 1.6, maxWidth: 560 }}>
-              Establish at least one connection to your cloud, database, or file layer below. Once EDH can see your
-              data layer, choose which of the nine modules to run against it — one, several, or all — and save the
-              setup to a project you can come back to.
-            </p>
-          </div>
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <DataLayerDiagram compact />
-          </div>
+
+        {/* Step indicator */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 32, flexWrap: "wrap" }}>
+          {[
+            { n: 1, label: "Project" },
+            { n: 2, label: "Connect a source" },
+            { n: 3, label: "Choose modules" },
+            { n: 4, label: "Validate & launch" },
+          ].map((s, i) => (
+            <React.Fragment key={s.n}>
+              <button
+                onClick={() => s.n < step && setStep(s.n)}
+                disabled={s.n > step}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8, background: "none", border: "none",
+                  cursor: s.n < step ? "pointer" : "default", padding: "6px 4px",
+                }}
+              >
+                <span style={{
+                  width: 24, height: 24, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 11.5, fontWeight: 700, fontFamily: "IBM Plex Mono",
+                  background: s.n === step ? T.coral : s.n < step ? T.greenDim : T.panelAlt,
+                  color: s.n === step ? "#FFFFFF" : s.n < step ? T.green : T.mutedDim,
+                  border: `1px solid ${s.n === step ? T.coral : s.n < step ? T.green : T.border}`,
+                }}>
+                  {s.n < step ? <Check size={12} /> : s.n}
+                </span>
+                <span style={{ fontSize: 12.5, fontWeight: s.n === step ? 600 : 500, color: s.n === step ? T.text : T.mutedDim }}>{s.label}</span>
+              </button>
+              {i < 3 && <div style={{ flex: 1, minWidth: 20, height: 1, background: s.n < step ? T.green : T.border }} />}
+            </React.Fragment>
+          ))}
         </div>
 
-        {/* Project selection now lives in the sticky top bar — see the switcher next to your account info. */}
-
-        {/* Connectivity */}
-        <SectionCard eyebrow="Data layer" title="Connect your cloud, databases, and files" icon={Cloud}>
-          {scopeNotice && (
-            <div style={{ fontSize: 11.5, color: T.coral, background: T.coralDim, borderRadius: 8, padding: "8px 12px", marginBottom: 14 }}>{scopeNotice}</div>
-          )}
-          <div style={{ fontSize: 11, fontWeight: 700, color: T.mutedDim, textTransform: "uppercase", letterSpacing: "0.06em", margin: "4px 0 10px" }}>Cloud</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginBottom: 22 }}>
-            {CONNECTOR_DEFS.filter((d) => d.category === "cloud").map((d) => (
-              <ConnectorCard key={d.id} def={d} connection={connections.find((c) => c.id === d.id)} onConnect={handleConnect} onCredentialsCached={handleCredentialsCached} getCachedCredentials={(id) => credCache.current[id]} onSelectScope={handleSelectScope} />
-            ))}
-          </div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: T.mutedDim, textTransform: "uppercase", letterSpacing: "0.06em", margin: "4px 0 10px" }}>Databases & data platforms</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginBottom: 22 }}>
-            {CONNECTOR_DEFS.filter((d) => d.category === "database").map((d) => (
-              <ConnectorCard key={d.id} def={d} connection={connections.find((c) => c.id === d.id)} onConnect={handleConnect} onCredentialsCached={handleCredentialsCached} getCachedCredentials={(id) => credCache.current[id]} onSelectScope={handleSelectScope} />
-            ))}
-          </div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: T.mutedDim, textTransform: "uppercase", letterSpacing: "0.06em", margin: "4px 0 10px" }}>Files</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
-            {CONNECTOR_DEFS.filter((d) => d.category === "file").map((d) => (
-              <ConnectorCard key={d.id} def={d} connection={connections.find((c) => c.id === d.id)} onConnect={handleConnect} onCredentialsCached={handleCredentialsCached} getCachedCredentials={(id) => credCache.current[id]} onSelectScope={handleSelectScope} />
-            ))}
-          </div>
-        </SectionCard>
-
-        {/* Module selection — gated */}
-        <SectionCard eyebrow="Run" title="Choose which modules to run" icon={Check}>
-          {!hasConnection ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px", background: T.panelAlt, border: `1px dashed ${T.borderLight}`, borderRadius: 10, color: T.mutedDim, fontSize: 12.5 }}>
-              <Lock size={15} /> Connect at least one data source above to unlock module selection.
+        {/* ---- Step 1: Project ---- */}
+        {step === 1 && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 32, alignItems: "center", marginBottom: 32 }}>
+              <div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.amber, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Step 1 of 4</div>
+                <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 26, margin: "0 0 10px" }}>
+                  Start with a project.
+                </h1>
+                <p style={{ fontSize: 13.5, color: T.muted, lineHeight: 1.6, maxWidth: 560 }}>
+                  Everything you connect and every module you run gets saved under a project, so you can pick up
+                  exactly where you left off. Use the switcher in the top bar to select an existing one, or create a
+                  new one — it takes a few seconds.
+                </p>
+              </div>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <DataLayerDiagram compact />
+              </div>
             </div>
-          ) : (
-            <>
+
+            <SectionCard eyebrow="Project" title={activeProject ? `Using: ${activeProject.name}` : "No project selected yet"} icon={Folder}>
+              {activeProject ? (
+                <div style={{ fontSize: 12.5, color: T.muted }}>
+                  You're set — click <strong style={{ color: T.text }}>Continue</strong> below, or use the switcher in
+                  the top bar to pick a different project first.
+                </div>
+              ) : guest ? (
+                <div style={{ fontSize: 12.5, color: T.muted }}>
+                  Guest sessions don't have persistent projects. You can still continue and connect sources, but
+                  nothing will be saved once you sign out or your session times out.
+                </div>
+              ) : (
+                <div style={{ fontSize: 12.5, color: T.muted }}>
+                  Use <strong style={{ color: T.text }}>+ New project</strong> in the top bar to create one, then come back here.
+                </div>
+              )}
+            </SectionCard>
+
+            {!!history.length && (
+              <SectionCard eyebrow="History" title="Previous runs" icon={History}>
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {history.slice(0, 8).map((h) => (
+                    <div key={h.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${T.border}` }}>
+                      <div>
+                        <div style={{ fontSize: 12.5, color: T.text }}>{h.projectName} · {h.modules.length} module{h.modules.length !== 1 ? "s" : ""}</div>
+                        <div style={{ fontSize: 10.5, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{new Date(h.timestamp).toLocaleString()}</div>
+                      </div>
+                      <button onClick={() => { setSelectedModules(h.modules); setStep(3); }} style={{ fontSize: 11, color: T.cyan, background: "none", border: `1px solid ${T.border}`, borderRadius: 7, padding: "6px 10px", cursor: "pointer" }}>
+                        Restore selection
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button onClick={() => setStep(2)} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "11px 20px", cursor: "pointer" }}>
+                Continue <ArrowRight size={15} />
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ---- Step 2: Connect ---- */}
+        {step === 2 && (
+          <>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.amber, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Step 2 of 4</div>
+            <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 24, margin: "0 0 20px" }}>Connect a data source.</h1>
+
+            <SectionCard eyebrow="Data layer" title="Connect your cloud, databases, and files" icon={Cloud}>
+              {scopeNotice && (
+                <div style={{ fontSize: 11.5, color: T.coral, background: T.coralDim, borderRadius: 8, padding: "8px 12px", marginBottom: 14 }}>{scopeNotice}</div>
+              )}
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.mutedDim, textTransform: "uppercase", letterSpacing: "0.06em", margin: "4px 0 10px" }}>Cloud</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginBottom: 22 }}>
+                {CONNECTOR_DEFS.filter((d) => d.category === "cloud").map((d) => (
+                  <ConnectorCard key={d.id} def={d} connection={connections.find((c) => c.id === d.id)} onConnect={handleConnect} onCredentialsCached={handleCredentialsCached} getCachedCredentials={(id) => credCache.current[id]} onSelectScope={handleSelectScope} />
+                ))}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.mutedDim, textTransform: "uppercase", letterSpacing: "0.06em", margin: "4px 0 10px" }}>Databases & data platforms</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginBottom: 22 }}>
+                {CONNECTOR_DEFS.filter((d) => d.category === "database").map((d) => (
+                  <ConnectorCard key={d.id} def={d} connection={connections.find((c) => c.id === d.id)} onConnect={handleConnect} onCredentialsCached={handleCredentialsCached} getCachedCredentials={(id) => credCache.current[id]} onSelectScope={handleSelectScope} />
+                ))}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: T.mutedDim, textTransform: "uppercase", letterSpacing: "0.06em", margin: "4px 0 10px" }}>Files</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
+                {CONNECTOR_DEFS.filter((d) => d.category === "file").map((d) => (
+                  <ConnectorCard key={d.id} def={d} connection={connections.find((c) => c.id === d.id)} onConnect={handleConnect} onCredentialsCached={handleCredentialsCached} getCachedCredentials={(id) => credCache.current[id]} onSelectScope={handleSelectScope} />
+                ))}
+              </div>
+            </SectionCard>
+
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <button onClick={() => setStep(1)} style={{ fontSize: 13, color: T.muted, background: "none", border: `1px solid ${T.border}`, borderRadius: 9, padding: "10px 18px", cursor: "pointer" }}>
+                Back
+              </button>
+              <button
+                onClick={() => setStep(3)}
+                disabled={!hasConnection}
+                style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600, color: "#FFFFFF", background: hasConnection ? T.coral : T.border, border: "none", borderRadius: 9, padding: "11px 20px", cursor: hasConnection ? "pointer" : "not-allowed" }}
+              >
+                Continue <ArrowRight size={15} />
+              </button>
+            </div>
+            {!hasConnection && <div style={{ fontSize: 11.5, color: T.mutedDim, textAlign: "right", marginTop: 8 }}>Connect at least one source to continue.</div>}
+          </>
+        )}
+
+        {/* ---- Step 3: Modules ---- */}
+        {step === 3 && (
+          <>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.amber, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Step 3 of 4</div>
+            <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 24, margin: "0 0 20px" }}>Choose which modules to run.</h1>
+
+            <SectionCard eyebrow="Run" title="Select one, several, or all" icon={Check}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                 <span style={{ fontSize: 12, color: T.mutedDim }}>{selectedModules.length} of {MODULE_LIST.length} selected</span>
                 <button onClick={toggleAll} style={{ fontSize: 11.5, fontWeight: 600, color: T.cyan, background: "none", border: "none", cursor: "pointer" }}>
@@ -615,7 +733,6 @@ export default function Workspace({ email, activeProject, onActiveProjectChange,
                   );
                 })}
               </div>
-
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                 <select
                   onChange={(e) => e.target.value && saveToProject(e.target.value)}
@@ -627,56 +744,102 @@ export default function Workspace({ email, activeProject, onActiveProjectChange,
                   <option value="__new__">+ New project</option>
                 </select>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11.5, color: T.mutedDim }}><Save size={12} /> {saveNotice}</span>
-
-                <button
-                  onClick={launch}
-                  disabled={!selectedModules.length}
-                  style={{
-                    marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600,
-                    color: "#FFFFFF", background: selectedModules.length ? T.coral : T.border, border: "none", borderRadius: 9,
-                    padding: "11px 18px", cursor: selectedModules.length ? "pointer" : "not-allowed",
-                  }}
-                >
-                  <Rocket size={15} /> Launch Dashboard
-                </button>
               </div>
-            </>
-          )}
-        </SectionCard>
+            </SectionCard>
 
-        {/* History */}
-        {!!history.length && (
-          <SectionCard eyebrow="History" title="Previous runs" icon={History}>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {history.slice(0, 8).map((h) => (
-                <div key={h.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${T.border}` }}>
-                  <div>
-                    <div style={{ fontSize: 12.5, color: T.text }}>{h.projectName} · {h.modules.length} module{h.modules.length !== 1 ? "s" : ""}</div>
-                    <div style={{ fontSize: 10.5, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{new Date(h.timestamp).toLocaleString()}</div>
-                  </div>
-                  <button onClick={() => setSelectedModules(h.modules)} style={{ fontSize: 11, color: T.cyan, background: "none", border: `1px solid ${T.border}`, borderRadius: 7, padding: "6px 10px", cursor: "pointer" }}>
-                    Restore selection
-                  </button>
-                </div>
-              ))}
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <button onClick={() => setStep(2)} style={{ fontSize: 13, color: T.muted, background: "none", border: `1px solid ${T.border}`, borderRadius: 9, padding: "10px 18px", cursor: "pointer" }}>
+                Back
+              </button>
+              <button
+                onClick={() => { setValidation(null); setStep(4); }}
+                disabled={!selectedModules.length}
+                style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600, color: "#FFFFFF", background: selectedModules.length ? T.coral : T.border, border: "none", borderRadius: 9, padding: "11px 20px", cursor: selectedModules.length ? "pointer" : "not-allowed" }}
+              >
+                Continue <ArrowRight size={15} />
+              </button>
             </div>
-          </SectionCard>
+            {!selectedModules.length && <div style={{ fontSize: 11.5, color: T.mutedDim, textAlign: "right", marginTop: 8 }}>Select at least one module to continue.</div>}
+          </>
         )}
 
-        {/* DataGuard callout */}
-        <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 14, padding: 22, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: T.text, marginBottom: 4 }}>Need deeper data-quality analysis on a connected source?</div>
-            <div style={{ fontSize: 12, color: T.muted, maxWidth: 560 }}>
-              EDH focuses on compliance, control, and cyber-risk posture. If you need more detailed technical
-              data-quality analysis on the data itself, try DataGuard.
+        {/* ---- Step 4: Validate & launch ---- */}
+        {step === 4 && (
+          <>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: T.amber, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Step 4 of 4</div>
+            <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 24, margin: "0 0 20px" }}>Validate, then launch.</h1>
+
+            <SectionCard eyebrow="Readiness check" title="Run validation before launching" icon={Check}>
+              <p style={{ fontSize: 12.5, color: T.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                This checks what's actually connected and selected — a real count, not a simulated score. It's a
+                sanity check before launch, not a compliance audit result.
+              </p>
+              {!validation ? (
+                <button onClick={runValidation} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600, color: T.text, background: T.panelAlt, border: `1px solid ${T.borderLight}`, borderRadius: 9, padding: "11px 18px", cursor: "pointer" }}>
+                  <FlaskConical size={15} /> Run validation
+                </button>
+              ) : (
+                <div>
+                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 18 }}>
+                    <ValStat label="Connections checked" value={validation.connectionsChecked} good={validation.connectionsChecked > 0} />
+                    <ValStat label="Resources in scope" value={validation.resourcesInScope} good={validation.resourcesInScope > 0} />
+                    <ValStat label="Scoped connections" value={validation.scopedConnections} good={validation.scopedConnections > 0} />
+                    <ValStat label="Modules selected" value={validation.modulesSelected} good={validation.modulesSelected > 0} />
+                  </div>
+                  <div style={{ marginBottom: 4, fontSize: 12, color: T.mutedDim }}>Readiness</div>
+                  <div style={{ height: 10, borderRadius: 6, background: T.panelAlt, overflow: "hidden", marginBottom: 6 }}>
+                    <div style={{ width: `${validation.readiness}%`, height: "100%", background: validation.readiness > 70 ? T.green : validation.readiness > 40 ? T.amber : T.red }} />
+                  </div>
+                  <div style={{ fontSize: 11, color: T.mutedDim, marginBottom: 20 }}>
+                    {validation.readiness}% — {validation.scopedConnections === 0 ? "consider setting a DB/schema/table validation scope on your connections for more precise results (see Step 2)." : "connections have scopes set — good to launch."}
+                  </div>
+                  <button onClick={runValidation} style={{ fontSize: 11.5, color: T.cyan, background: "none", border: "none", cursor: "pointer", padding: 0 }}>Re-run validation</button>
+                </div>
+              )}
+            </SectionCard>
+
+            <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 14, padding: 22, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, flexWrap: "wrap", marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: T.text, marginBottom: 4 }}>Need deeper data-quality analysis on a connected source?</div>
+                <div style={{ fontSize: 12, color: T.muted, maxWidth: 560 }}>
+                  EDH focuses on compliance, control, and cyber-risk posture. If you need more detailed technical
+                  data-quality analysis on the data itself, try DataGuard.
+                </div>
+              </div>
+              <a href="https://dataguard.dataquality.health/" target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600, color: T.cyan, background: T.cyanDim, border: `1px solid ${T.cyan}55`, borderRadius: 9, padding: "9px 15px", textDecoration: "none", flexShrink: 0 }}>
+                Try DataGuard <ExternalLink size={12} />
+              </a>
             </div>
-          </div>
-          <a href="https://dataguard.dataquality.health/" target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 600, color: T.cyan, background: T.cyanDim, border: `1px solid #1D5A56`, borderRadius: 9, padding: "9px 15px", textDecoration: "none", flexShrink: 0 }}>
-            Try DataGuard <ExternalLink size={12} />
-          </a>
-        </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <button onClick={() => setStep(3)} style={{ fontSize: 13, color: T.muted, background: "none", border: `1px solid ${T.border}`, borderRadius: 9, padding: "10px 18px", cursor: "pointer" }}>
+                Back
+              </button>
+              <button
+                onClick={launch}
+                style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "11px 20px", cursor: "pointer" }}
+              >
+                <Rocket size={15} /> Launch Dashboard
+              </button>
+            </div>
+          </>
+        )}
       </div>
+      <ChatAssistant
+        onAction={(action) => {
+          const m = action.target?.match(/^workspace-step-(\d)$/);
+          if (m) setStep(Number(m[1]));
+        }}
+      />
+    </div>
+  );
+}
+
+function ValStat({ label, value, good }) {
+  return (
+    <div style={{ minWidth: 110 }}>
+      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 22, color: good ? T.green : T.mutedDim }}>{value}</div>
+      <div style={{ fontSize: 10.5, color: T.mutedDim }}>{label}</div>
     </div>
   );
 }

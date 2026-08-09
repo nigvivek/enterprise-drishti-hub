@@ -71,6 +71,7 @@ export default function Root() {
       <EnterpriseDrishtiHub
         enabledModuleIds={enabledModuleIds}
         activeProject={activeProject}
+        email={currentEmail}
         onBack={() => setView("workspace")}
       />
     );

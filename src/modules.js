@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ScrollText, GitCompareArrows, ClipboardCheck, FileStack,
-  Radar as RadarIcon, ShieldAlert, Cloud, FileCheck2, Route,
+  Radar as RadarIcon, Route, BrainCircuit, Network,
 } from "lucide-react";
 
 export const MODULE_LIST = [
@@ -10,10 +10,9 @@ export const MODULE_LIST = [
   { id: "controls", label: "Continuous Control Validation", icon: ClipboardCheck, module: "Module 3" },
   { id: "evidence", label: "Audit Evidence Generation", icon: FileStack, module: "Module 4" },
   { id: "predictive", label: "Predictive Regulatory Risk", icon: RadarIcon, module: "Module 6" },
-  { id: "cyber", label: "Cybersecurity Monitoring", icon: ShieldAlert, module: "Module 7" },
-  { id: "cloud", label: "Cloud Ecosystem Connect", icon: Cloud, module: "Module 8" },
-  { id: "filegov", label: "File Governance & Scan", icon: FileCheck2, module: "Module 9" },
-  { id: "gateway", label: "AI Gateway & Cost Governance", icon: Route, module: "Module 10" },
+  { id: "riskanalysis", label: "AI-Powered Contextual Risk Analysis", icon: BrainCircuit, module: "Module 7" },
+  { id: "relgraph", label: "Enterprise Context & Relationship Graph", icon: Network, module: "Module 8" },
+  { id: "gateway", label: "AI Gateway & Cost Governance", icon: Route, module: "Module 9" },
 ];
 
 export const ALL_MODULE_IDS = MODULE_LIST.map((m) => m.id);

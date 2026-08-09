@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import {
   ShieldCheck, ScrollText, GitCompareArrows, ClipboardCheck, FileStack,
-  LayoutDashboard, Radar as RadarIcon, ShieldAlert, Cloud, FileCheck2,
-  ArrowRight, Quote, Lock, Server, Globe, Check, X, Bug, Activity, MessageSquarePlus, Route, Loader2,
+  LayoutDashboard, Radar as RadarIcon, BrainCircuit, Network,
+  ArrowRight, Quote, Lock, Server, Globe, Check, X, Activity, MessageSquarePlus, Route, Loader2, Database,
 } from "lucide-react";
 import { T, FONT_IMPORT } from "./tokens.js";
 import DataLayerDiagram from "./DataLayerDiagram.jsx";
@@ -16,10 +16,9 @@ const MODULES = [
   { id: "evidence", module: "Module 4", icon: FileStack, label: "AI-Driven Audit Evidence", desc: "Hash-chained, tamper-evident evidence packages generated in minutes, signed by a human before export." },
   { id: "overview", module: "Module 5", icon: LayoutDashboard, label: "Enterprise Compliance Dashboard", desc: "One posture score, drillable by framework, business unit, and jurisdiction." },
   { id: "predictive", module: "Module 6", icon: RadarIcon, label: "Predictive Regulatory Risk", desc: "Model-scored risk by topic, with the sample size and confidence shown — never a black box." },
-  { id: "cyber", module: "Module 7", icon: ShieldAlert, label: "Cybersecurity Monitoring", desc: "Your existing SIEM/EDR signal, correlated to the control and obligation it puts at risk." },
-  { id: "cloud", module: "Module 8", icon: Cloud, label: "Cloud Ecosystem Connect", desc: "Read-only, least-privilege connectors into AWS, GCP, Azure, and IBM Cloud." },
-  { id: "filegov", module: "Module 9", icon: FileCheck2, label: "File Governance & Scan", desc: "Drop in a document, get an immediate read on sensitive data and which obligation it triggers." },
-  { id: "gateway", module: "Module 10", icon: Route, label: "AI Gateway & Cost Governance", desc: "Routes every AI call across self-hosted and opt-in fallback models by cost, latency, and health — with full token and spend attribution for audit." },
+  { id: "riskanalysis", module: "Module 7", icon: BrainCircuit, label: "AI-Powered Contextual Risk Analysis", desc: "Scores counterparties and vendors on how their connections — jurisdiction, ownership, control status — combine into overall risk, not on one attribute alone." },
+  { id: "relgraph", module: "Module 8", icon: Network, label: "Enterprise Context & Relationship Graph", desc: "One graph connecting counterparties, vendors, jurisdictions, and controls — the shared model every other module reads from." },
+  { id: "gateway", module: "Module 9", icon: Route, label: "AI Gateway & Cost Governance", desc: "Routes every AI call across self-hosted and opt-in fallback models by cost, latency, and health — with full token and spend attribution for audit." },
 ];
 
 const TESTIMONIALS = [
@@ -29,10 +28,10 @@ const TESTIMONIALS = [
 ];
 
 const SECURITY_FEATURES = [
-  { icon: ShieldAlert, title: "Correlated alert stream", body: "Every SIEM/EDR alert linked to the exact control and regulatory obligation it puts at risk — not a separate, disconnected feed." },
-  { icon: Cloud, title: "Cross-cloud posture", body: "AWS, GCP, Azure, and IBM Cloud findings normalized into one severity taxonomy, so a misconfigured bucket looks the same regardless of provider." },
-  { icon: Bug, title: "Vulnerability aging", body: "Unpatched criticals tracked against your own SLA, not just a scanner's CVSS score — the number auditors actually ask for." },
-  { icon: Activity, title: "MTTD / MTTR tracking", body: "Detection and response time trended over time, the same metrics your board and your next audit will both want to see." },
+  { icon: Lock, title: "Self-hosted AI, by default", body: "Every model runs on infrastructure you control. No regulatory text, control data, or credentials are a required input to any third-party API." },
+  { icon: Database, title: "Credentials never persisted", body: "Every connector — cloud, database, or file — is used once per request and never written to storage. You control exactly what EDH can see." },
+  { icon: FileStack, title: "Hash-chained evidence", body: "Audit evidence is content-hashed at capture and again at export, so tampering after the fact is detectable, not just discouraged." },
+  { icon: Activity, title: "Full AI output audit trail", body: "Every AI-generated finding is tagged with model version and source citations, retained indefinitely for model-risk review." },
 ];
 
 const TIERS = [
@@ -44,7 +43,7 @@ const TIERS = [
     cta: "Start free trial",
     highlight: false,
     features: [
-      "All 10 modules, full functionality",
+      "All 9 modules, full functionality",
       "1 cloud provider connector",
       "Up to 50 controls monitored",
       "Shared demo environment",
@@ -60,7 +59,7 @@ const TIERS = [
     cta: "Talk to sales",
     highlight: true,
     features: [
-      "All 10 modules, full functionality",
+      "All 9 modules, full functionality",
       "Up to 4 cloud provider connectors",
       "Unlimited controls & evidence packages",
       "Dedicated tenant, your choice of region",
@@ -369,7 +368,7 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
             </button>
           </div>
           <div style={{ display: "flex", gap: 26, marginTop: 40, flexWrap: "wrap" }}>
-            {[["10", "integrated modules"], ["4", "cloud providers connected"], ["0", "third-party data exposure"]].map(([n, l]) => (
+            {[["9", "integrated modules"], ["4", "cloud providers connected"], ["0", "third-party data exposure"]].map(([n, l]) => (
               <div key={l}>
                 <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 26, color: T.text }}>{n}</div>
                 <div style={{ fontSize: 11.5, color: T.mutedDim }}>{l}</div>
@@ -405,7 +404,7 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
       {/* ---- Modules ---- */}
       <div id="modules" style={{ maxWidth: 1180, margin: "0 auto", padding: "80px 24px", scrollMarginTop: 70 }}>
         <SectionEyebrow>Platform</SectionEyebrow>
-        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: "0 0 12px" }}>Ten modules. One posture.</h2>
+        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: "0 0 12px" }}>Nine modules. One posture.</h2>
         <p style={{ fontSize: 14.5, color: T.muted, maxWidth: 560, marginBottom: 40 }}>
           Every module writes to the same control, obligation, and evidence model — so a finding in one place shows up
           everywhere it's relevant, instead of living in a spreadsheet someone forgets to update.
@@ -441,7 +440,7 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
             <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: "0 0 14px" }}>EDH sits on top of your data layer — it doesn't replace it.</h2>
             <p style={{ fontSize: 14.5, color: T.muted, lineHeight: 1.65, marginBottom: 18 }}>
               Your cloud accounts, on-prem databases, and file systems stay exactly where they are. EDH connects to
-              that existing data layer through read-only, least-privilege connectors, and every one of the ten
+              that existing data layer through read-only, least-privilege connectors, and every one of the nine
               modules runs as a view on top of what's already there.
             </p>
             <p style={{ fontSize: 14.5, color: T.muted, lineHeight: 1.65 }}>
@@ -479,11 +478,10 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
       {/* ---- Security ---- */}
       <div id="security" style={{ maxWidth: 1180, margin: "0 auto", padding: "80px 24px", scrollMarginTop: 70 }}>
         <SectionEyebrow>Security</SectionEyebrow>
-        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: "0 0 12px" }}>Cybersecurity monitoring, in compliance context.</h2>
+        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: "0 0 12px" }}>Built to be trusted with regulated data.</h2>
         <p style={{ fontSize: 14.5, color: T.muted, maxWidth: 620, marginBottom: 32 }}>
-          EDH doesn't replace your SIEM or EDR — it sits on top of the telemetry you already collect and answers the
-          question those tools don't: which control does this finding put at risk, and which regulation does that
-          control satisfy.
+          Compliance data is some of the most sensitive material an enterprise holds — a live map of exactly where
+          its posture is weakest. Every design decision here starts from that fact.
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginBottom: 28 }}>
           {SECURITY_FEATURES.map((f) => {
@@ -500,7 +498,7 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
           })}
         </div>
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap", background: T.panelAlt, border: `1px solid ${T.border}`, borderRadius: 13, padding: "18px 22px" }}>
-          {[["21m", "avg. MTTD"], ["1.8d", "avg. MTTR"], ["3", "open critical vulns"], ["4", "clouds correlated"]].map(([v, l]) => (
+          {[["0", "third-party data exposure by default"], ["0", "credentials persisted after use"], ["100%", "of AI outputs carry a source citation"]].map(([v, l]) => (
             <div key={l}>
               <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 22, color: T.cyan }}>{v}</div>
               <div style={{ fontSize: 11, color: T.mutedDim }}>{l}</div>
@@ -514,7 +512,7 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
         <SectionEyebrow>Pricing</SectionEyebrow>
         <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: "0 0 12px" }}>Start free. Scale into your own environment.</h2>
         <p style={{ fontSize: 14.5, color: T.muted, maxWidth: 560, marginBottom: 40 }}>
-          Every tier runs the same ten modules. What changes is where it's deployed, how much of your environment it
+          Every tier runs the same nine modules. What changes is where it's deployed, how much of your environment it
           watches, and what kind of support sits behind it.
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
