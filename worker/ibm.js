@@ -1,7 +1,7 @@
 import { safeJson } from "./shared.js";
 
 export async function connectIbm(body) {
-  const { apiKey } = body;
+  const apiKey = (body.apiKey || "").trim();
   if (!apiKey) return { ok: false, error: "apiKey is required" };
 
   const resources = [];

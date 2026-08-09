@@ -1,7 +1,8 @@
 import { safeJson } from "./shared.js";
 
 export async function connectGcp(body) {
-  const { accessToken, projectId } = body;
+  const accessToken = (body.accessToken || "").trim();
+  const projectId = (body.projectId || "").trim();
   if (!accessToken || !projectId) {
     return { ok: false, error: "accessToken and projectId are required" };
   }

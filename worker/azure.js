@@ -1,7 +1,8 @@
 import { safeJson } from "./shared.js";
 
 export async function connectAzure(body) {
-  const { bearerToken, subscriptionId } = body;
+  const bearerToken = (body.bearerToken || "").trim();
+  const subscriptionId = (body.subscriptionId || "").trim();
   if (!bearerToken || !subscriptionId) {
     return { ok: false, error: "bearerToken and subscriptionId are required" };
   }

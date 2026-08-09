@@ -1,7 +1,8 @@
 import { safeJson } from "./shared.js";
 
 export async function connectDatabricks(body) {
-  const { workspaceUrl, token } = body;
+  const workspaceUrl = (body.workspaceUrl || "").trim();
+  const token = (body.token || "").trim();
   if (!workspaceUrl || !token) return { ok: false, error: "workspaceUrl and token are required" };
 
   const base = workspaceUrl.replace(/\/$/, "");

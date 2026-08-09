@@ -9,9 +9,30 @@ async function xmlTagValues(xmlText, tag) {
 }
 
 export async function connectAws(body) {
-  const { accessKeyId, secretAccessKey, sessionToken, region } = body;
+  const accessKeyId = (body.accessKeyId || "").trim();
+  const secretAccessKey = (body.secretAccessKey || "").trim();
+  const sessionToken = (body.sessionToken || "").trim() || undefined;
+  const region = (body.region || "").trim();
+
   if (!accessKeyId || !secretAccessKey || !region) {
     return { ok: false, error: "accessKeyId, secretAccessKey, and region are required" };
+  }
+  if (!/^(AKIA|ASIA)[A-Z0-9]{16}$/.test(accessKeyId)) {
+    return {
+      ok: false,
+      error:
+        "That Access Key ID doesn't look like a valid AWS key — it should start with AKIA (long-term) or ASIA " +
+        "(temporary/STS) and be 20 characters total. Check for a stray space or newline from copy-pasting, or that " +
+        "you didn't paste the Secret Access Key into this field by mistake.",
+    };
+  }
+  if (accessKeyId.startsWith("ASIA") && !sessionToken) {
+    return {
+      ok: false,
+      error:
+        "This looks like a temporary (STS) access key — those require a Session Token too. If you generated " +
+        "credentials with `aws sts get-session-token`, make sure you copied the SessionToken value into that field as well.",
+    };
   }
 
   const resources = [];

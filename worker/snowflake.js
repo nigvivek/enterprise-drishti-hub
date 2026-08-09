@@ -1,7 +1,8 @@
 import { safeJson } from "./shared.js";
 
 export async function connectSnowflake(body) {
-  const { account, token } = body;
+  const account = (body.account || "").trim();
+  const token = (body.token || "").trim();
   if (!account || !token) return { ok: false, error: "account and token are required" };
 
   const resources = [];
