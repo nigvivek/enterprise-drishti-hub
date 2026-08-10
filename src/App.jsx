@@ -8,7 +8,7 @@ import {
   ShieldCheck, ScrollText, GitCompareArrows, ClipboardCheck, FileStack,
   LayoutDashboard, TrendingUp, Radar as RadarIcon, Bell, Search, ChevronRight,
   AlertTriangle, CheckCircle2, Clock, XCircle, ExternalLink, Sparkles,
-  Activity, Database, ArrowLeft, Home,
+  Activity, Database, ArrowLeft, Home, UploadCloud, Loader2,
   Route, Zap, Wallet, GitBranch, CircleDot, ArrowRightLeft, FlaskConical,
 } from "lucide-react";
 
