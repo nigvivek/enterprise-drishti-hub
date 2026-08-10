@@ -73,6 +73,7 @@ export default function Root() {
         activeProject={activeProject}
         email={currentEmail}
         onBack={() => setView("workspace")}
+        onHome={() => setView("landing")}
       />
     );
   }

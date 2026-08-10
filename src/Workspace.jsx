@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   ShieldCheck, LogOut, FolderPlus, Folder, Cloud, Database, FileText, Check,
   Loader2, ExternalLink, History, Save, Rocket, ChevronDown, Lock, FlaskConical, ArrowRight,
+  UploadCloud, X, Home,
 } from "lucide-react";
 import { T, FONT_IMPORT } from "./tokens.js";
 import { MODULE_LIST } from "./modules.js";
@@ -208,6 +209,81 @@ function DatabricksBrowser({ catalog, getCreds, onSelectScope }) {
               {!schemas.length && <div style={{ fontSize: 10, color: T.mutedDim }}>No schemas found.</div>}
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function FileConnector({ connection, onConnect }) {
+  const [dragOver, setDragOver] = useState(false);
+  const inputRef = useRef(null);
+  const files = connection?.resources || [];
+
+  const addFiles = (fileList) => {
+    const newEntries = Array.from(fileList).map((f) => ({
+      service: "File", type: f.type || "unknown", name: f.name, size: f.size,
+    }));
+    if (!newEntries.length) return;
+    onConnect({
+      id: "files", name: "Files", category: "file", status: "connected", live: true,
+      meta: {}, resources: [...files, ...newEntries], connectedAt: new Date().toISOString(),
+    });
+  };
+
+  const removeFile = (name) => {
+    const remaining = files.filter((f) => f.name !== name);
+    onConnect({
+      id: "files", name: "Files", category: "file", status: remaining.length ? "connected" : "not connected",
+      meta: {}, resources: remaining, connectedAt: new Date().toISOString(),
+    });
+  };
+
+  return (
+    <div>
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
+        style={{
+          border: `1.5px dashed ${dragOver ? T.coral : T.borderLight}`, borderRadius: 12, padding: "22px 16px",
+          textAlign: "center", background: dragOver ? T.coralDim : T.panelAlt, transition: "all .15s", marginBottom: files.length ? 14 : 0,
+        }}
+      >
+        <UploadCloud size={22} color={dragOver ? T.coral : T.mutedDim} style={{ marginBottom: 8 }} />
+        <div style={{ fontSize: 12.5, color: T.text, fontWeight: 500 }}>Drop files here, or</div>
+        <button
+          onClick={() => inputRef.current?.click()}
+          style={{ marginTop: 8, fontSize: 11.5, fontWeight: 600, color: T.coral, border: `1px solid ${T.coral}55`, padding: "6px 12px", borderRadius: 8, background: T.coralDim, cursor: "pointer" }}
+        >
+          Browse files
+        </button>
+        <input ref={inputRef} type="file" multiple style={{ display: "none" }} onChange={(e) => addFiles(e.target.files)} />
+        <div style={{ fontSize: 10, color: T.mutedDim, marginTop: 8 }}>
+          File names, sizes, and types are captured for reference — content isn't uploaded anywhere by this connector.
+        </div>
+      </div>
+
+      {files.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {files.map((f) => (
+            <div key={f.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 11px", background: T.panelAlt, borderRadius: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                <FileText size={13} color={T.coral} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
+                <span style={{ fontSize: 10.5, color: T.mutedDim, fontFamily: "IBM Plex Mono", flexShrink: 0 }}>{formatBytes(f.size)}</span>
+              </div>
+              <button onClick={() => removeFile(f.name)} style={{ background: "none", border: "none", color: T.mutedDim, cursor: "pointer", flexShrink: 0, padding: 2 }}>
+                <X size={13} />
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -478,10 +554,13 @@ export default function Workspace({ email, activeProject, onActiveProjectChange,
 
   const launch = () => {
     if (!selectedModules.length) return;
+    const fileConn = connections.find((c) => c.id === "files" && c.status === "connected");
     addHistoryEntry(email, {
       projectId: activeProjectId,
       projectName: activeProject?.name || "No project",
       modules: selectedModules,
+      moduleLabels: selectedModules.map((id) => MODULE_LIST.find((m) => m.id === id)?.label || id),
+      fileNames: (fileConn?.resources || []).map((f) => f.name),
       connectionCount: connections.filter((c) => c.status === "connected").length,
     });
     setHistory(getHistory(email));
@@ -556,6 +635,9 @@ export default function Workspace({ email, activeProject, onActiveProjectChange,
             <div style={{ fontSize: 12.5, fontWeight: 600 }}>{guest ? "Guest session" : user?.name}</div>
             <div style={{ fontSize: 10.5, color: T.mutedDim }}>{guest ? "not saved beyond this browser" : user?.email}</div>
           </div>
+          <button onClick={onBackToSite} title="Home" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: T.mutedDim, background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 11px", cursor: "pointer" }}>
+            <Home size={13} /> Home
+          </button>
           <button onClick={() => { signOut(); onSignedOut(); }} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: T.mutedDim, background: "none", border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 11px", cursor: "pointer" }}>
             <LogOut size={13} /> Sign out
           </button>
@@ -638,17 +720,28 @@ export default function Workspace({ email, activeProject, onActiveProjectChange,
             {!!history.length && (
               <SectionCard eyebrow="History" title="Previous runs" icon={History}>
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  {history.slice(0, 8).map((h) => (
-                    <div key={h.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${T.border}` }}>
-                      <div>
-                        <div style={{ fontSize: 12.5, color: T.text }}>{h.projectName} · {h.modules.length} module{h.modules.length !== 1 ? "s" : ""}</div>
-                        <div style={{ fontSize: 10.5, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{new Date(h.timestamp).toLocaleString()}</div>
+                  {history.slice(0, 8).map((h) => {
+                    const moduleNames = h.moduleLabels?.length
+                      ? h.moduleLabels
+                      : h.modules.map((id) => MODULE_LIST.find((m) => m.id === id)?.label || id); // fallback for entries saved before this field existed
+                    return (
+                      <div key={h.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "11px 0", borderBottom: `1px solid ${T.border}`, gap: 12 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, color: T.text, fontWeight: 500 }}>{h.projectName}</div>
+                          <div style={{ fontSize: 11, color: T.muted, marginTop: 3, lineHeight: 1.5 }}>{moduleNames.join(", ")}</div>
+                          {h.fileNames?.length > 0 && (
+                            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4, fontSize: 10.5, color: T.coral }}>
+                              <FileText size={11} /> {h.fileNames.join(", ")}
+                            </div>
+                          )}
+                          <div style={{ fontSize: 10, color: T.mutedDim, fontFamily: "IBM Plex Mono", marginTop: 4 }}>{new Date(h.timestamp).toLocaleString()}</div>
+                        </div>
+                        <button onClick={() => { setSelectedModules(h.modules); setStep(3); }} style={{ fontSize: 11, color: T.cyan, background: "none", border: `1px solid ${T.border}`, borderRadius: 7, padding: "6px 10px", cursor: "pointer", flexShrink: 0 }}>
+                          Restore
+                        </button>
                       </div>
-                      <button onClick={() => { setSelectedModules(h.modules); setStep(3); }} style={{ fontSize: 11, color: T.cyan, background: "none", border: `1px solid ${T.border}`, borderRadius: 7, padding: "6px 10px", cursor: "pointer" }}>
-                        Restore selection
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </SectionCard>
             )}
@@ -684,11 +777,7 @@ export default function Workspace({ email, activeProject, onActiveProjectChange,
                 ))}
               </div>
               <div style={{ fontSize: 11, fontWeight: 700, color: T.mutedDim, textTransform: "uppercase", letterSpacing: "0.06em", margin: "4px 0 10px" }}>Files</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
-                {CONNECTOR_DEFS.filter((d) => d.category === "file").map((d) => (
-                  <ConnectorCard key={d.id} def={d} connection={connections.find((c) => c.id === d.id)} onConnect={handleConnect} onCredentialsCached={handleCredentialsCached} getCachedCredentials={(id) => credCache.current[id]} onSelectScope={handleSelectScope} />
-                ))}
-              </div>
+              <FileConnector connection={connections.find((c) => c.id === "files")} onConnect={handleConnect} />
             </SectionCard>
 
             <div style={{ display: "flex", justifyContent: "space-between" }}>

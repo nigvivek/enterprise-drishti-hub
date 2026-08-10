@@ -8,7 +8,7 @@ import {
   ShieldCheck, ScrollText, GitCompareArrows, ClipboardCheck, FileStack,
   LayoutDashboard, TrendingUp, Radar as RadarIcon, Bell, Search, ChevronRight,
   AlertTriangle, CheckCircle2, Clock, XCircle, ExternalLink, Sparkles,
-  Activity, Database, ArrowLeft,
+  Activity, Database, ArrowLeft, Home,
   Route, Zap, Wallet, GitBranch, CircleDot, ArrowRightLeft, FlaskConical,
 } from "lucide-react";
 
@@ -541,13 +541,15 @@ function Predictive() {
 /* ---------------------------------------------------------------------- */
 function RiskAnalysis({ connections = [] }) {
   const liveConnections = connections.filter((c) => c.status === "connected");
+  const fileConn = liveConnections.find((c) => c.category === "file");
+  const connectedFiles = fileConn?.resources || [];
   const statusColor = { up: T.red, down: T.green, flat: T.mutedDim };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
         <KPI label="Connected data sources" value={liveConnections.length} sub="Real — from your workspace connections" icon={Route} />
-        <KPI label="Entities monitored" value="4" tone="warn" sub="Simulated example set" />
+        <KPI label="Connected documents" value={connectedFiles.length} sub="Real — actual connected files" icon={FileStack} />
         <KPI label="High-risk entities" value={2} tone="bad" sub="Simulated example set" />
         <KPI label="Avg. contextual risk score" value="61" tone="warn" sub="Simulated example set" />
       </div>
@@ -561,14 +563,38 @@ function RiskAnalysis({ connections = [] }) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {liveConnections.map((c) => (
-              <div key={c.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "8px 10px", background: T.panelAlt, borderRadius: 8 }}>
-                <span style={{ color: T.text }}>{c.name}</span>
-                <span style={{ color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{c.resources?.length ? `${c.resources.length} resources` : c.category}</span>
+              <div key={c.id}>
+                {(c.resources?.length ? c.resources.map((r) => r.name) : [c.name]).map((itemName, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "8px 10px", background: T.panelAlt, borderRadius: 8, marginBottom: 4 }}>
+                    <span style={{ color: T.text }}>{itemName}</span>
+                    <span style={{ color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{c.category}</span>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
         )}
       </Panel>
+
+      {connectedFiles.length > 0 && (
+        <Panel eyebrow="Real — no simulation" title="Connected documents">
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {connectedFiles.map((f, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 11px", background: T.panelAlt, borderRadius: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <FileStack size={13} color={T.coral} />
+                  <span style={{ fontSize: 12.5, color: T.text }}>{f.name}</span>
+                </div>
+                <span style={{ fontSize: 11, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{(f.size / 1024).toFixed(1)} KB · {f.type || "unknown type"}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 10.5, color: T.mutedDim, marginTop: 10, lineHeight: 1.5 }}>
+            These are your actual connected files. Contextual risk scoring on document contents (entity extraction,
+            clause analysis) isn't built yet — the findings below remain a simulated example until that's connected.
+          </div>
+        </Panel>
+      )}
 
       <Panel eyebrow="Simulated example" title="Contextual risk findings" right={<SimTag />}>
         <p style={{ fontSize: 12, color: T.muted, marginBottom: 16, lineHeight: 1.6 }}>
@@ -603,7 +629,9 @@ function RiskAnalysis({ connections = [] }) {
 /* ---------------------------------------------------------------------- */
 function RelationshipGraph({ connections = [] }) {
   const liveConnections = connections.filter((c) => c.status === "connected");
-  const typeColor = { org: T.coral, counterparty: T.amber, vendor: T.cyan, regulation: T.indigo, control: T.green, jurisdiction: T.red };
+  const fileConn = liveConnections.find((c) => c.category === "file");
+  const connectedFiles = (fileConn?.resources || []).slice(0, 6); // cap displayed nodes so the graph stays readable
+  const typeColor = { org: T.coral, counterparty: T.amber, vendor: T.cyan, regulation: T.indigo, control: T.green, jurisdiction: T.red, document: T.coral };
 
   // Simple manual layout — original composition, not force-directed physics, kept
   // deterministic so the same example graph always renders the same way.
@@ -612,13 +640,20 @@ function RelationshipGraph({ connections = [] }) {
     vendor1: { x: 500, y: 60 }, reg1: { x: 560, y: 170 }, reg2: { x: 480, y: 290 },
     ctrl1: { x: 260, y: 30 }, ctrl2: { x: 500, y: 300 }, jur1: { x: 60, y: 170 },
   };
+  const fileNodes = connectedFiles.map((f, i) => ({ id: `file-${i}`, label: f.name, type: "document", real: true }));
+  fileNodes.forEach((n, i) => { positions[n.id] = { x: 160 + i * 90, y: 330 }; });
+  const fileEdges = fileNodes.map((n) => ({ from: "org", to: n.id, label: "document", real: true }));
+
+  const allNodes = [...relationshipGraphNodes, ...fileNodes];
+  const allEdges = [...relationshipGraphEdges, ...fileEdges];
+  const viewHeight = fileNodes.length ? 380 : 340;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
         <KPI label="Connected data sources" value={liveConnections.length} sub="Real — from your workspace connections" icon={Route} />
-        <KPI label="Entities in graph" value={relationshipGraphNodes.length} tone="warn" sub="Simulated example set" />
-        <KPI label="Relationships mapped" value={relationshipGraphEdges.length} tone="warn" sub="Simulated example set" />
+        <KPI label="Connected documents in graph" value={fileNodes.length} sub="Real — actual connected files" icon={FileStack} />
+        <KPI label="Simulated entities" value={relationshipGraphNodes.length} tone="warn" sub="Illustrative example set" />
       </div>
 
       <Panel eyebrow="Real" title="Data sources feeding this graph">
@@ -629,34 +664,42 @@ function RelationshipGraph({ connections = [] }) {
           </div>
         ) : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {liveConnections.map((c) => <Pill key={c.id} tone="info">{c.name}</Pill>)}
+            {liveConnections.map((c) =>
+              (c.resources?.length ? c.resources.map((r) => r.name) : [c.name]).map((itemName, i) => (
+                <Pill key={`${c.id}-${i}`} tone="info">{itemName}</Pill>
+              ))
+            )}
           </div>
         )}
       </Panel>
 
-      <Panel eyebrow="Simulated example" title="Entity relationship map" right={<SimTag />}>
+      <Panel eyebrow={fileNodes.length ? "Mixed — real documents, illustrative relationships" : "Simulated example"} title="Entity relationship map" right={<SimTag />}>
         <p style={{ fontSize: 12, color: T.muted, marginBottom: 16, lineHeight: 1.6 }}>
           A single graph connecting counterparties, vendors, jurisdictions, controls, and the regulations they fall
-          under — the same underlying model every other module reads from, visualized directly. This is a worked
-          example; a live graph populates automatically as real entity data connects.
+          under — the same underlying model every other module reads from, visualized directly.
+          {fileNodes.length > 0
+            ? " Your connected document(s) below are shown as real nodes (solid coral fill); the surrounding counterparty/vendor/regulation entities are still a worked example."
+            : " This is a worked example; real nodes populate automatically as data connects."}
         </p>
-        <svg viewBox="0 0 620 340" width="100%" style={{ maxWidth: 620 }}>
-          {relationshipGraphEdges.map((e, i) => {
+        <svg viewBox={`0 0 620 ${viewHeight}`} width="100%" style={{ maxWidth: 620 }}>
+          {allEdges.map((e, i) => {
             const a = positions[e.from], b = positions[e.to];
+            if (!a || !b) return null;
             return (
               <g key={i}>
-                <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={T.borderLight} strokeWidth="1.2" />
+                <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={e.real ? T.coral : T.borderLight} strokeWidth={e.real ? "1.6" : "1.2"} strokeDasharray={e.real ? "none" : "none"} />
                 <text x={(a.x + b.x) / 2} y={(a.y + b.y) / 2 - 4} textAnchor="middle" fontSize="8.5" fill={T.mutedDim} fontFamily="IBM Plex Mono">{e.label}</text>
               </g>
             );
           })}
-          {relationshipGraphNodes.map((n) => {
+          {allNodes.map((n) => {
             const p = positions[n.id];
+            if (!p) return null;
             const color = typeColor[n.type] || T.mutedDim;
             return (
               <g key={n.id}>
-                <circle cx={p.x} cy={p.y} r={n.type === "org" ? 34 : 26} fill={T.panel} stroke={color} strokeWidth="1.8" />
-                <text x={p.x} y={p.y + 3} textAnchor="middle" fontSize="9" fontWeight="600" fontFamily="'Space Grotesk', sans-serif" fill={T.text}>
+                <circle cx={p.x} cy={p.y} r={n.type === "org" ? 34 : 26} fill={n.real ? color : T.panel} stroke={color} strokeWidth="1.8" />
+                <text x={p.x} y={p.y + 3} textAnchor="middle" fontSize="9" fontWeight="600" fontFamily="'Space Grotesk', sans-serif" fill={n.real ? "#FFFFFF" : T.text}>
                   {n.label.length > 16 ? n.label.slice(0, 14) + "…" : n.label}
                 </text>
               </g>
@@ -831,7 +874,7 @@ function Gateway() {
 /* ---------------------------------------------------------------------- */
 /*  App shell                                                              */
 /* ---------------------------------------------------------------------- */
-export default function EnterpriseDrishtiHub({ onBack, enabledModuleIds, activeProject, email, connections: connectionsProp }) {
+export default function EnterpriseDrishtiHub({ onBack, onHome, enabledModuleIds, activeProject, email, connections: connectionsProp }) {
   const connections = connectionsProp || (email ? getConnections(email) : []);
   const NAV = enabledModuleIds && enabledModuleIds.length
     ? MODULE_LIST.filter((m) => enabledModuleIds.includes(m.id))
@@ -892,13 +935,19 @@ export default function EnterpriseDrishtiHub({ onBack, enabledModuleIds, activeP
             <div style={{ fontSize: 10, color: T.mutedDim, fontFamily: "IBM Plex Mono", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8, padding: "0 4px" }}>
               Connected sources
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 3, maxHeight: 160, overflowY: "auto" }}>
-              {connections.filter((c) => c.status === "connected").map((c) => (
-                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 8px", fontSize: 11, color: T.muted }}>
-                  <Database size={11} color={T.cyan} style={{ flexShrink: 0 }} />
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
-                </div>
-              ))}
+            <div style={{ display: "flex", flexDirection: "column", gap: 3, maxHeight: 200, overflowY: "auto" }}>
+              {connections.filter((c) => c.status === "connected").map((c) => {
+                // Files (and any connector with individually-named resources) show each
+                // real item by name; connectors without itemized resources fall back to
+                // the connector's own name.
+                const items = c.resources?.length ? c.resources.map((r) => r.name) : [c.name];
+                return items.map((itemName, i) => (
+                  <div key={`${c.id}-${i}`} style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 8px", fontSize: 11, color: T.muted }}>
+                    {c.category === "file" ? <FileStack size={11} color={T.coral} style={{ flexShrink: 0 }} /> : <Database size={11} color={T.cyan} style={{ flexShrink: 0 }} />}
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={itemName}>{itemName}</span>
+                  </div>
+                ));
+              })}
             </div>
           </div>
         )}
@@ -909,6 +958,14 @@ export default function EnterpriseDrishtiHub({ onBack, enabledModuleIds, activeP
             style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: T.muted, background: "transparent", border: "none", cursor: "pointer", padding: "8px 10px", textAlign: "left" }}
           >
             <ArrowLeft size={13} /> Back to workspace
+          </button>
+        )}
+        {onHome && (
+          <button
+            onClick={onHome}
+            style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: T.muted, background: "transparent", border: "none", cursor: "pointer", padding: "8px 10px", textAlign: "left" }}
+          >
+            <Home size={13} /> Home
           </button>
         )}
 
