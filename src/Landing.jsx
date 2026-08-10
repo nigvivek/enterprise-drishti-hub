@@ -8,10 +8,10 @@ import { T, FONT_IMPORT } from "./tokens.js";
 import DataLayerDiagram from "./DataLayerDiagram.jsx";
 
 const MODULES = [
-  { id: "overview", tier: "Module", icon: LayoutDashboard, label: "Enterprise Compliance Dashboard", desc: "One posture score, drillable by framework, business unit, and jurisdiction — with a real, live graphical view of your connected enterprise data." },
+  { id: "overview", tier: "Module", icon: LayoutDashboard, label: "Risk Analysis Dashboard", desc: "One posture score, drillable by framework, business unit, and jurisdiction — with a real, live graphical view of your connected enterprise data." },
   { id: "impact", tier: "Module", icon: GitCompareArrows, label: "Compliance Impact Analysis", desc: "AI-proposed, human-approved mapping from regulatory change to the control it actually affects — now with region-based data guideline validation against your connected sources." },
   { id: "predictive", tier: "Module", icon: RadarIcon, label: "Predictive Regulatory Risk & Audit Evidence", desc: "Load historical data for real statistical anomaly detection and a transparent trend projection, alongside hash-chained audit evidence generation — merged into one module." },
-  { id: "controls", tier: "Feature", icon: ClipboardCheck, label: "Continuous Control Validation", desc: "Controls tested against live system state, embedded as a feature rather than a standalone module." },
+  { id: "controls", tier: "Module", icon: ClipboardCheck, label: "Continuous Control Validation", desc: "Controls tested against live system state, not a once-a-year attestation." },
   { id: "gateway", tier: "Platform", icon: Route, label: "AI Gateway & Cost Governance", desc: "Technical infrastructure for AI routing, failover, and cost tracking — kept separate from the functional business modules." },
 ];
 
@@ -246,7 +246,7 @@ function TestimonialsSection() {
 
 const inputStyle = { width: "100%", boxSizing: "border-box", background: T.panelAlt, border: `1px solid ${T.border}`, borderRadius: 7, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: "'Inter', sans-serif" };
 
-export default function LandingPage({ onLaunch, onSelectModule }) {
+export default function LandingPage({ onLaunch, onGoGateway, onSelectModule }) {
   const coreModuleCount = MODULES.filter((m) => m.tier === "Module").length;
 
   return (
@@ -275,7 +275,17 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
             <NavLink href="#feedback">Feedback</NavLink>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              onClick={onGoGateway}
+              title="AI Gateway & Cost Governance"
+              style={{
+                display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: T.text,
+                background: "transparent", border: `1px solid ${T.borderLight}`, borderRadius: 8, padding: "9px 13px", cursor: "pointer",
+              }}
+            >
+              <Route size={14} color={T.indigo} /> AI Gateway
+            </button>
             <button
               onClick={onLaunch}
               style={{
@@ -311,6 +321,9 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
           <div style={{ display: "flex", gap: 12, marginTop: 32, flexWrap: "wrap" }}>
             <button onClick={onLaunch} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "12px 20px", cursor: "pointer" }}>
               Launch Dashboard <ArrowRight size={15} />
+            </button>
+            <button onClick={onGoGateway} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: T.text, background: "transparent", border: `1px solid ${T.borderLight}`, borderRadius: 9, padding: "12px 20px", cursor: "pointer" }}>
+              <Route size={15} color={T.indigo} /> AI Gateway & Cost Governance
             </button>
           </div>
           <div style={{ display: "flex", gap: 26, marginTop: 40, flexWrap: "wrap" }}>
@@ -517,9 +530,14 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "80px 24px", textAlign: "center" }}>
         <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: "0 0 14px" }}>See your whole risk posture in one place.</h2>
         <p style={{ fontSize: 14.5, color: T.muted, marginBottom: 28 }}>Self-hosted. Human-approved. Built for banking and capital markets.</p>
-        <button onClick={onLaunch} style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "13px 22px", cursor: "pointer" }}>
-          Launch Dashboard <ArrowRight size={15} />
-        </button>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+          <button onClick={onLaunch} style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "13px 22px", cursor: "pointer" }}>
+            Launch Dashboard <ArrowRight size={15} />
+          </button>
+          <button onClick={onGoGateway} style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: T.text, background: "transparent", border: `1px solid ${T.borderLight}`, borderRadius: 9, padding: "13px 22px", cursor: "pointer" }}>
+            <Route size={15} color={T.indigo} /> AI Gateway & Cost Governance
+          </button>
+        </div>
       </div>
 
       {/* ---- Footer ---- */}

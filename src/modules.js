@@ -10,10 +10,10 @@ import {
 //                    pinned top-of-sidebar item, not part of the tiered
 //                    Modules/Features grouping (also per explicit decision)
 export const MODULE_LIST = [
-  { id: "overview", label: "Enterprise Compliance Dashboard", icon: LayoutDashboard, tier: "module", tierLabel: "Module" },
+  { id: "overview", label: "Risk Analysis Dashboard", icon: LayoutDashboard, tier: "module", tierLabel: "Module" },
   { id: "impact", label: "Compliance Impact Analysis", icon: GitCompareArrows, tier: "module", tierLabel: "Module" },
   { id: "predictive", label: "Predictive Regulatory Risk & Audit Evidence", icon: RadarIcon, tier: "module", tierLabel: "Module" },
-  { id: "controls", label: "Continuous Control Validation", icon: ClipboardCheck, tier: "feature", tierLabel: "Feature" },
+  { id: "controls", label: "Continuous Control Validation", icon: ClipboardCheck, tier: "module", tierLabel: "Module" },
   { id: "gateway", label: "AI Gateway & Cost Governance", icon: Route, tier: "platform", tierLabel: "Platform" },
 ];
 

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   ShieldCheck, LogOut, FolderPlus, Folder, Cloud, Database, FileText, Check,
   Loader2, ExternalLink, History, Save, Rocket, ChevronDown, Lock, FlaskConical, ArrowRight,
-  UploadCloud, X, Home,
+  UploadCloud, X, Home, Route,
 } from "lucide-react";
 import { T, FONT_IMPORT } from "./tokens.js";
 import { MODULE_LIST } from "./modules.js";
@@ -446,7 +446,7 @@ function ConnectorCard({ def, connection, onConnect, onCredentialsCached, getCac
   );
 }
 
-export default function Workspace({ email, activeProject, onActiveProjectChange, credCache: credCacheProp, onLaunchDashboard, onSignedOut, onBackToSite }) {
+export default function Workspace({ email, activeProject, onActiveProjectChange, credCache: credCacheProp, onLaunchDashboard, onGoGateway, onSignedOut, onBackToSite }) {
   const user = getUser(email);
   const guest = isGuest(email);
 
@@ -905,12 +905,20 @@ export default function Workspace({ email, activeProject, onActiveProjectChange,
               <button onClick={() => setStep(3)} style={{ fontSize: 13, color: T.muted, background: "none", border: `1px solid ${T.border}`, borderRadius: 9, padding: "10px 18px", cursor: "pointer" }}>
                 Back
               </button>
-              <button
-                onClick={launch}
-                style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "11px 20px", cursor: "pointer" }}
-              >
-                <Rocket size={15} /> Launch Dashboard
-              </button>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={onGoGateway}
+                  style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: T.text, background: "transparent", border: `1px solid ${T.borderLight}`, borderRadius: 9, padding: "11px 18px", cursor: "pointer" }}
+                >
+                  <Route size={14} color={T.indigo} /> AI Gateway
+                </button>
+                <button
+                  onClick={launch}
+                  style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "11px 20px", cursor: "pointer" }}
+                >
+                  <Rocket size={15} /> Launch Dashboard
+                </button>
+              </div>
             </div>
           </>
         )}

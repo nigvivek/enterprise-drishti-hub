@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, Route } from "lucide-react";
 import { T, FONT_IMPORT } from "./tokens.js";
 import { MODULE_DETAILS } from "./moduleDetails.js";
 
@@ -61,7 +61,7 @@ function FlowDiagram({ stages, accentColor }) {
   );
 }
 
-export default function ModuleDetail({ moduleDef, onBack, onLaunch }) {
+export default function ModuleDetail({ moduleDef, onBack, onLaunch, onGoGateway }) {
   const detail = MODULE_DETAILS[moduleDef.id];
   const Icon = moduleDef.icon;
 
@@ -103,9 +103,22 @@ export default function ModuleDetail({ moduleDef, onBack, onLaunch }) {
           Like every module in EDH, AI outputs here are drafts with citations — a human reviewer signs off before anything becomes a system-of-record fact.
         </div>
 
-        <button onClick={onLaunch} style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "12px 20px", cursor: "pointer" }}>
-          See it in the dashboard <ArrowRight size={15} />
-        </button>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          {moduleDef.tier === "Platform" ? (
+            <button onClick={onGoGateway} style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "12px 20px", cursor: "pointer" }}>
+              Open AI Gateway <ArrowRight size={15} />
+            </button>
+          ) : (
+            <>
+              <button onClick={onLaunch} style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "12px 20px", cursor: "pointer" }}>
+                See it in the dashboard <ArrowRight size={15} />
+              </button>
+              <button onClick={onGoGateway} style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600, color: T.text, background: "transparent", border: `1px solid ${T.borderLight}`, borderRadius: 9, padding: "12px 20px", cursor: "pointer" }}>
+                <Route size={15} color={T.indigo} /> AI Gateway & Cost Governance
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

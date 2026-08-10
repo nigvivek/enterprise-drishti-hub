@@ -987,10 +987,10 @@ export default function EnterpriseDrishtiHub({ onBack, onHome, enabledModuleIds,
         })}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {["module", "feature"].map((tier) => {
+          {["module"].map((tier) => {
             const items = NAV.filter((n) => n.tier === tier);
             if (!items.length) return null;
-            const tierHeading = tier === "module" ? "Modules" : "Features";
+            const tierHeading = "Modules";
             return (
               <div key={tier} style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 9.5, color: T.mutedDim, fontFamily: "IBM Plex Mono", textTransform: "uppercase", letterSpacing: "0.08em", padding: "6px 12px 4px" }}>{tierHeading}</div>

@@ -15,6 +15,7 @@ function RootInner() {
   const [selectedModule, setSelectedModule] = useState(null);
   const [activeProject, setActiveProject] = useState(null); // { id, name } | null
   const [timeoutNotice, setTimeoutNotice] = useState(false);
+  const [pendingGateway, setPendingGateway] = useState(false); // true while waiting on auth to complete a Gateway shortcut click
 
   // In-memory only (never localStorage) — lifted to this level so credentials
   // cached during a "Test & connect" in the workspace can still be reused for
@@ -24,6 +25,20 @@ function RootInner() {
 
   const goLaunch = () => {
     setView(currentEmail ? "workspace" : "auth");
+  };
+
+  // "AI Gateway & Cost Governance" is platform infrastructure, not a functional
+  // module — this jumps straight to it, skipping the project/connect/select
+  // workspace flow entirely, since Gateway doesn't depend on a connected data
+  // source the way the functional modules do.
+  const goGateway = () => {
+    if (!currentEmail) {
+      setPendingGateway(true);
+      setView("auth");
+      return;
+    }
+    setEnabledModuleIds(["gateway"]);
+    setView("dashboard");
   };
 
   const handleSessionTimeout = () => {
@@ -47,6 +62,7 @@ function RootInner() {
         moduleDef={selectedModule}
         onBack={() => setView("landing")}
         onLaunch={goLaunch}
+        onGoGateway={goGateway}
       />
     );
   }
@@ -55,8 +71,18 @@ function RootInner() {
     return (
       <AuthScreen
         timeoutNotice={timeoutNotice}
-        onSignedIn={(email) => { setCurrentEmail(email); setTimeoutNotice(false); setView("workspace"); }}
-        onBackToSite={() => { setTimeoutNotice(false); setView("landing"); }}
+        onSignedIn={(email) => {
+          setCurrentEmail(email);
+          setTimeoutNotice(false);
+          if (pendingGateway) {
+            setPendingGateway(false);
+            setEnabledModuleIds(["gateway"]);
+            setView("dashboard");
+          } else {
+            setView("workspace");
+          }
+        }}
+        onBackToSite={() => { setTimeoutNotice(false); setPendingGateway(false); setView("landing"); }}
       />
     );
   }
@@ -69,6 +95,7 @@ function RootInner() {
         onActiveProjectChange={setActiveProject}
         credCache={credCache}
         onLaunchDashboard={(moduleIds) => { setEnabledModuleIds(moduleIds); setView("dashboard"); }}
+        onGoGateway={goGateway}
         onSignedOut={() => { setCurrentEmail(null); setActiveProject(null); credCache.current = {}; setView("landing"); }}
         onBackToSite={() => setView("landing")}
       />
@@ -98,6 +125,7 @@ function RootInner() {
       )}
       <LandingPage
         onLaunch={goLaunch}
+        onGoGateway={goGateway}
         onSelectModule={(m) => { setSelectedModule(m); setView("moduleDetail"); window.scrollTo(0, 0); }}
       />
     </>
