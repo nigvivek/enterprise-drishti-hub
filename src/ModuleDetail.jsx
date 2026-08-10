@@ -82,7 +82,7 @@ export default function ModuleDetail({ moduleDef, onBack, onLaunch }) {
           <div style={{ width: 44, height: 44, borderRadius: 11, background: T.panel, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Icon size={20} color={T.coral} />
           </div>
-          <div style={{ fontSize: 11, color: T.mutedDim, fontFamily: "IBM Plex Mono", textTransform: "uppercase", letterSpacing: "0.08em" }}>{moduleDef.module}</div>
+          <div style={{ fontSize: 11, color: T.mutedDim, fontFamily: "IBM Plex Mono", textTransform: "uppercase", letterSpacing: "0.08em" }}>{moduleDef.tier}</div>
         </div>
         <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 34, margin: "10px 0 20px", lineHeight: 1.15 }}>{moduleDef.label}</h1>
 

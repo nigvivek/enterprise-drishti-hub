@@ -446,7 +446,7 @@ function ConnectorCard({ def, connection, onConnect, onCredentialsCached, getCac
   );
 }
 
-export default function Workspace({ email, activeProject, onActiveProjectChange, onLaunchDashboard, onSignedOut, onBackToSite }) {
+export default function Workspace({ email, activeProject, onActiveProjectChange, credCache: credCacheProp, onLaunchDashboard, onSignedOut, onBackToSite }) {
   const user = getUser(email);
   const guest = isGuest(email);
 
@@ -464,7 +464,8 @@ export default function Workspace({ email, activeProject, onActiveProjectChange,
   // In-memory only (never written to localStorage) — lets "Browse" calls reuse
   // the credentials from the most recent successful connect for this provider,
   // without re-prompting on every click. Cleared on page reload by design.
-  const credCache = useRef({});
+  const localCredCache = useRef({});
+  const credCache = credCacheProp || localCredCache;
 
   const activeProjectId = activeProject?.id || null;
   const hasConnection = connections.some((c) => c.status === "connected");

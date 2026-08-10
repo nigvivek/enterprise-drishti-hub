@@ -10,15 +10,12 @@ import DataLayerDiagram from "./DataLayerDiagram.jsx";
 const SALES_EMAIL = "nehatyagi.in@gmail.com";
 
 const MODULES = [
-  { id: "regintel", module: "Module 1", icon: ScrollText, label: "Regulatory Change Intelligence", desc: "Every relevant regulatory change, filtered to what actually applies to your entities and jurisdictions." },
-  { id: "impact", module: "Module 2", icon: GitCompareArrows, label: "Compliance Impact Analysis", desc: "AI-proposed, human-approved mapping from regulatory change to the control it actually affects." },
-  { id: "controls", module: "Module 3", icon: ClipboardCheck, label: "Continuous Control Validation", desc: "Controls tested against live system state, not a once-a-year attestation." },
-  { id: "evidence", module: "Module 4", icon: FileStack, label: "AI-Driven Audit Evidence", desc: "Hash-chained, tamper-evident evidence packages generated in minutes, signed by a human before export." },
-  { id: "overview", module: "Module 5", icon: LayoutDashboard, label: "Enterprise Compliance Dashboard", desc: "One posture score, drillable by framework, business unit, and jurisdiction." },
-  { id: "predictive", module: "Module 6", icon: RadarIcon, label: "Predictive Regulatory Risk", desc: "Model-scored risk by topic, with the sample size and confidence shown — never a black box." },
-  { id: "riskanalysis", module: "Module 7", icon: BrainCircuit, label: "AI-Powered Contextual Risk Analysis", desc: "Scores counterparties and vendors on how their connections — jurisdiction, ownership, control status — combine into overall risk, not on one attribute alone." },
-  { id: "relgraph", module: "Module 8", icon: Network, label: "Enterprise Context & Relationship Graph", desc: "One graph connecting counterparties, vendors, jurisdictions, and controls — the shared model every other module reads from." },
-  { id: "gateway", module: "Module 9", icon: Route, label: "AI Gateway & Cost Governance", desc: "Routes every AI call across self-hosted and opt-in fallback models by cost, latency, and health — with full token and spend attribution for audit." },
+  { id: "overview", tier: "Module", icon: LayoutDashboard, label: "Enterprise Compliance Dashboard", desc: "One posture score, drillable by framework, business unit, and jurisdiction — with a real, live graphical view of your connected enterprise data." },
+  { id: "impact", tier: "Module", icon: GitCompareArrows, label: "Compliance Impact Analysis", desc: "AI-proposed, human-approved mapping from regulatory change to the control it actually affects — now with region-based data guideline validation against your connected sources." },
+  { id: "predictive", tier: "Module", icon: RadarIcon, label: "Predictive Regulatory Risk", desc: "Load historical data and get real statistical anomaly detection plus a transparent trend projection — not a black box." },
+  { id: "controls", tier: "Feature", icon: ClipboardCheck, label: "Continuous Control Validation", desc: "Controls tested against live system state, embedded as a feature rather than a standalone module." },
+  { id: "evidence", tier: "Feature", icon: FileStack, label: "AI-Driven Audit Evidence", desc: "Hash-chained, tamper-evident evidence packages, signed by a human before export." },
+  { id: "gateway", tier: "Platform", icon: Route, label: "AI Gateway & Cost Governance", desc: "Technical infrastructure for AI routing, failover, and cost tracking — kept separate from the functional business modules." },
 ];
 
 const TESTIMONIALS = [

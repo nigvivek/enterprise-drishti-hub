@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import LandingPage from "./Landing.jsx";
 import AuthScreen from "./Auth.jsx";
 import Workspace from "./Workspace.jsx";
@@ -15,6 +15,12 @@ export default function Root() {
   const [activeProject, setActiveProject] = useState(null); // { id, name } | null
   const [timeoutNotice, setTimeoutNotice] = useState(false);
 
+  // In-memory only (never localStorage) — lifted to this level so credentials
+  // cached during a "Test & connect" in the workspace can still be reused for
+  // live re-validation from the dashboard later in the same browser session,
+  // without ever being persisted to disk. Cleared on reload, by design.
+  const credCache = useRef({});
+
   const goLaunch = () => {
     setView(currentEmail ? "workspace" : "auth");
   };
@@ -25,6 +31,7 @@ export default function Root() {
     setCurrentEmail(null);
     setActiveProject(null);
     setEnabledModuleIds(null);
+    credCache.current = {};
     setView("landing");
     setTimeoutNotice(true);
   };
@@ -59,8 +66,9 @@ export default function Root() {
         email={currentEmail}
         activeProject={activeProject}
         onActiveProjectChange={setActiveProject}
+        credCache={credCache}
         onLaunchDashboard={(moduleIds) => { setEnabledModuleIds(moduleIds); setView("dashboard"); }}
-        onSignedOut={() => { setCurrentEmail(null); setActiveProject(null); setView("landing"); }}
+        onSignedOut={() => { setCurrentEmail(null); setActiveProject(null); credCache.current = {}; setView("landing"); }}
         onBackToSite={() => setView("landing")}
       />
     );
@@ -72,6 +80,7 @@ export default function Root() {
         enabledModuleIds={enabledModuleIds}
         activeProject={activeProject}
         email={currentEmail}
+        credCache={credCache}
         onBack={() => setView("workspace")}
         onHome={() => setView("landing")}
       />

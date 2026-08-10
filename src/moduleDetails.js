@@ -3,15 +3,9 @@
 // anywhere) showing how that module actually processes a request.
 
 export const MODULE_DETAILS = {
-  regintel: {
-    commentary:
-      "Continuously ingests regulatory sources, diffs each new version at the clause level against what came before, and classifies changes against your applicability profile. Only changes that actually apply to your jurisdictions and licenses generate an alert, each with a plain-language summary cited back to the exact source clause — nothing is summarized without a traceable source.",
-    flow: ["Ingest sources", "Diff & classify", "Filter by applicability", "Cited summary"],
-    exampleFlow: ["EU AI Act Art. 6 update detected", "Diffed v2.3 → v2.4", "Applies to: EU entity, AI governance", "Cited summary sent to owner"],
-  },
   impact: {
     commentary:
-      "When a regulatory change clears the relevance filter, this module retrieves your existing control library and proposes which controls it affects and how severe the gap is — no control, insufficient control, or already sufficient. Every proposal is a draft with citations to both the regulation and your internal policy text; a compliance owner accepts, edits, or rejects it.",
+      "When a regulatory change clears the relevance filter, this module retrieves your existing control library and proposes which controls it affects and how severe the gap is. It also runs real region-based data guideline validation against your connected sources — matching each connection's actual region to the regulation that applies there (GDPR, CCPA, PIPEDA, and others) and showing the impact on that specific connection.",
     flow: ["Regulatory change", "Retrieve control library", "Propose mapping & gap", "Human review"],
     exampleFlow: ["New clause: DORA Art. 28", "Control TPRM-014 retrieved", "Gap found: insufficient evidence", "Assigned to R. Okafor"],
   },
@@ -29,27 +23,15 @@ export const MODULE_DETAILS = {
   },
   overview: {
     commentary:
-      "Rolls up every other module's output into one posture score, drillable by framework, business unit, and jurisdiction. This view is deliberately not another AI call — it's deterministic aggregation over data the other modules already validated, so it stays fast, reproducible, and exactly as trustworthy as the records feeding it.",
-    flow: ["All module data", "Aggregate by framework/BU", "Posture score", "Drill down"],
-    exampleFlow: ["9 modules report in", "Aggregated by framework", "Posture score: 76", "Drilldown: DORA at 76%"],
+      "Shows a real, live graphical view of every connected data source across the enterprise — resource counts by category and by connection, built entirely from actual connection data, no simulation. A live re-check can re-query connected sources using session-cached credentials and surface exactly what changed since the last check.",
+    flow: ["All connected sources", "Aggregate by category", "Real graphical view", "Live change detection"],
+    exampleFlow: ["3 sources connected", "142 resources tracked", "Check for changes run", "2 new files detected"],
   },
   predictive: {
     commentary:
-      "A gradient-boosted model — not a language model — scores regulatory risk by topic using your own control-drift history, remediation timeliness, and enforcement base rates for comparable entities. The language model's only job is turning that score into a readable brief with mitigation suggestions, always shown with its confidence interval and sample size, never a bare number.",
-    flow: ["Historical & control data", "Gradient-boosted scoring", "LLM narrative", "Confidence-scored brief"],
-    exampleFlow: ["90-day control-drift history", "Model scores AML topic: 78", "LLM drafts risk brief", "Shown with n=47, wide CI"],
-  },
-  riskanalysis: {
-    commentary:
-      "Scores counterparties, vendors, and portfolios not on a single attribute, but on how their connections combine — a jurisdiction change, an unverified beneficial-owner update, an overdue control, read together rather than in isolation. The scoring model reads from the same relationship graph the next module builds, and every score cites the specific factors driving it.",
-    flow: ["Entity + relationship data", "Contextual scoring model", "Cited risk drivers", "Human review"],
-    exampleFlow: ["Counterparty flagged in AML screen", "3 factors combined: UBO, jurisdiction, control status", "Score: 82 — cited drivers shown", "Routed to compliance owner"],
-  },
-  relgraph: {
-    commentary:
-      "Builds one graph connecting counterparties, vendors, jurisdictions, controls, and the regulations they fall under — so a change in one place (a new beneficial owner, a sub-processor added without notice) is visible everywhere it's relevant, instead of living in whichever system happened to record it first. Every other module reads from this same graph.",
-    flow: ["Connected entity data", "Resolve relationships", "Build shared graph", "Feed every module"],
-    exampleFlow: ["New vendor sub-processor added", "Linked to existing DPA + control", "Graph updated in place", "Risk analysis module notified"],
+      "Load a historical CSV and get real statistical anomaly detection — a genuine z-score calculation against your data, not a canned example. A simple, transparent linear projection then estimates the next period's anomaly count from the actual trend in your file, clearly labeled as a basic projection rather than a trained model.",
+    flow: ["Historical file loaded", "Real z-score detection", "Trend bucketed over time", "Linear projection"],
+    exampleFlow: ["claims_history.csv loaded", "14 anomalies found (|z|>2)", "Trend: rising 0.8/month", "Next period: ~5 projected"],
   },
   gateway: {
     commentary:
