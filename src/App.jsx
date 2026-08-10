@@ -532,47 +532,8 @@ function Controls() {
 /* ---------------------------------------------------------------------- */
 /*  Tab: Evidence Generation                                               */
 /* ---------------------------------------------------------------------- */
-function Evidence() {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-        <KPI label="Packages this quarter" value="47" />
-        <KPI label="Awaiting sign-off" value="2" tone="warn" />
-        <KPI label="Hash-chain verified" value="100%" tone="good" />
-      </div>
-      <Panel eyebrow="WORM-stored · hash-chained" title="Audit evidence packages" right={<SimTag />}>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {evidencePackages.map((e) => (
-            <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 0", borderBottom: `1px solid ${T.border}` }}>
-              <div>
-                <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{e.control}</div>
-                <div style={{ fontSize: 11, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{e.id} · {e.period} · {e.size}</div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <span style={{ fontSize: 11, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{e.hash}</span>
-                <Pill tone={statusTone[e.status]}>{e.status}</Pill>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Panel>
-      <Panel eyebrow="Example output" title="AI-drafted narrative — IAM-002 MFA Enforcement, Q3 2026">
-        <AiTag />
-        <p style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.7, marginTop: 10 }}>
-          Control IAM-002 requires multi-factor authentication for all privileged accounts across production identity providers.
-          Over the audit period, 91 automated checks were executed against the identity provider's admin role group; all 91
-          returned a passing result with no exceptions. One access-review artifact (uploaded 2026-07-14) confirms quarterly
-          recertification of the privileged group membership. No control drift events were recorded in this period. Evidence
-          is drawn from 14 underlying artifacts, each independently hash-verified against capture-time records.
-        </p>
-        <div style={{ marginTop: 12, fontSize: 11.5, color: T.mutedDim }}>Signed by R. Okafor · Aug 2, 2026 · version 3</div>
-      </Panel>
-    </div>
-  );
-}
-
 /* ---------------------------------------------------------------------- */
-/*  Tab: Predictive Risk                                                   */
+/*  Tab: Predictive Risk & Audit Evidence (merged module)                  */
 /* ---------------------------------------------------------------------- */
 function parseCsv(text) {
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
@@ -769,6 +730,39 @@ function Predictive() {
           ))}
         </div>
       </Panel>
+
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+        <KPI label="Evidence packages this quarter" value="47" />
+        <KPI label="Awaiting sign-off" value="2" tone="warn" />
+        <KPI label="Hash-chain verified" value="100%" tone="good" />
+      </div>
+      <Panel eyebrow="WORM-stored · hash-chained" title="Audit evidence packages" right={<SimTag />}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {evidencePackages.map((e) => (
+            <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 0", borderBottom: `1px solid ${T.border}` }}>
+              <div>
+                <div style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{e.control}</div>
+                <div style={{ fontSize: 11, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{e.id} · {e.period} · {e.size}</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <span style={{ fontSize: 11, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>{e.hash}</span>
+                <Pill tone={statusTone[e.status]}>{e.status}</Pill>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+      <Panel eyebrow="Example output" title="AI-drafted narrative — IAM-002 MFA Enforcement, Q3 2026">
+        <AiTag />
+        <p style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.7, marginTop: 10 }}>
+          Control IAM-002 requires multi-factor authentication for all privileged accounts across production identity providers.
+          Over the audit period, 91 automated checks were executed against the identity provider's admin role group; all 91
+          returned a passing result with no exceptions. One access-review artifact (uploaded 2026-07-14) confirms quarterly
+          recertification of the privileged group membership. No control drift events were recorded in this period. Evidence
+          is drawn from 14 underlying artifacts, each independently hash-verified against capture-time records.
+        </p>
+        <div style={{ marginTop: 12, fontSize: 11.5, color: T.mutedDim }}>Signed by R. Okafor · Aug 2, 2026 · version 3</div>
+      </Panel>
     </div>
   );
 }
@@ -934,16 +928,20 @@ export default function EnterpriseDrishtiHub({ onBack, onHome, enabledModuleIds,
     if (email) upsertConnection(email, updatedConn);
     setConnections((prev) => prev.map((c) => (c.id === updatedConn.id ? updatedConn : c)));
   };
-  const NAV = enabledModuleIds && enabledModuleIds.length
+  const filteredNav = enabledModuleIds && enabledModuleIds.length
     ? MODULE_LIST.filter((m) => enabledModuleIds.includes(m.id))
     : MODULE_LIST;
+  // If every provided id is stale (e.g. from a history entry saved before a
+  // module was renamed/removed), filteredNav can come back empty — fall back
+  // to the full list rather than rendering with no active module at all.
+  const NAV = filteredNav.length ? filteredNav : MODULE_LIST;
   const [tab, setTab] = useState(NAV[0]?.id || "overview");
   const active = useMemo(() => NAV.find((n) => n.id === tab) || NAV[0], [tab, NAV]);
 
   const panels = {
     overview: <Overview connections={connections} email={email} credCache={credCache} onConnectionsChange={handleConnectionsChange} />,
     impact: <Impact connections={connections} />,
-    controls: <Controls />, evidence: <Evidence />,
+    controls: <Controls />,
     predictive: <Predictive connections={connections} />,
     gateway: <Gateway />,
   };
@@ -954,7 +952,7 @@ export default function EnterpriseDrishtiHub({ onBack, onHome, enabledModuleIds,
 
       {/* Sidebar */}
       <div style={{ width: 258, borderRight: `1px solid ${T.border}`, padding: "22px 14px", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 10px", marginBottom: 26 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "0 10px", marginBottom: 14 }}>
           <div style={{ width: 30, height: 30, borderRadius: 8, background: T.coral, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <ShieldCheck size={17} color="#FFFFFF" />
           </div>
@@ -964,11 +962,35 @@ export default function EnterpriseDrishtiHub({ onBack, onHome, enabledModuleIds,
           </div>
         </div>
 
+        {/* Platform tier — pinned at the top, deliberately separate from the functional Modules/Features below */}
+        {NAV.filter((n) => n.tier === "platform").map((n) => {
+          const Icon = n.icon;
+          const isActive = tab === n.id;
+          return (
+            <button
+              key={n.id}
+              onClick={() => setTab(n.id)}
+              style={{
+                display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderRadius: 9, width: "100%", marginBottom: 18,
+                background: isActive ? T.coralDim : T.panelAlt,
+                border: `1px solid ${isActive ? T.coral : T.border}`,
+                color: isActive ? T.coral : T.muted, textAlign: "left", cursor: "pointer", fontSize: 12, fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              <Icon size={14} color={isActive ? T.coral : T.mutedDim} />
+              <div>
+                <div style={{ fontWeight: 600 }}>{n.label}</div>
+                <div style={{ fontSize: 9, color: T.mutedDim, fontFamily: "IBM Plex Mono" }}>Technical platform</div>
+              </div>
+            </button>
+          );
+        })}
+
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {["module", "feature", "platform"].map((tier) => {
+          {["module", "feature"].map((tier) => {
             const items = NAV.filter((n) => n.tier === tier);
             if (!items.length) return null;
-            const tierHeading = tier === "module" ? "Modules" : tier === "feature" ? "Features" : "Platform";
+            const tierHeading = tier === "module" ? "Modules" : "Features";
             return (
               <div key={tier} style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 9.5, color: T.mutedDim, fontFamily: "IBM Plex Mono", textTransform: "uppercase", letterSpacing: "0.08em", padding: "6px 12px 4px" }}>{tierHeading}</div>

@@ -4,10 +4,11 @@ import AuthScreen from "./Auth.jsx";
 import Workspace from "./Workspace.jsx";
 import EnterpriseDrishtiHub from "./App.jsx";
 import ModuleDetail from "./ModuleDetail.jsx";
+import ErrorBoundary from "./ErrorBoundary.jsx";
 import { getCurrentUserEmail, isGuest, clearGuestData, signOut } from "./store.js";
 import { useSessionTimeout } from "./useSessionTimeout.js";
 
-export default function Root() {
+function RootInner() {
   const [view, setView] = useState("landing"); // landing | auth | workspace | dashboard | moduleDetail
   const [currentEmail, setCurrentEmail] = useState(() => getCurrentUserEmail());
   const [enabledModuleIds, setEnabledModuleIds] = useState(null);
@@ -100,5 +101,14 @@ export default function Root() {
         onSelectModule={(m) => { setSelectedModule(m); setView("moduleDetail"); window.scrollTo(0, 0); }}
       />
     </>
+  );
+}
+
+export default function Root() {
+  const [resetKey, setResetKey] = React.useState(0);
+  return (
+    <ErrorBoundary key={resetKey} onReset={() => setResetKey((k) => k + 1)}>
+      <RootInner />
+    </ErrorBoundary>
   );
 }

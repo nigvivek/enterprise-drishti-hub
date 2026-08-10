@@ -737,7 +737,7 @@ export default function Workspace({ email, activeProject, onActiveProjectChange,
                           )}
                           <div style={{ fontSize: 10, color: T.mutedDim, fontFamily: "IBM Plex Mono", marginTop: 4 }}>{new Date(h.timestamp).toLocaleString()}</div>
                         </div>
-                        <button onClick={() => { setSelectedModules(h.modules); setStep(3); }} style={{ fontSize: 11, color: T.cyan, background: "none", border: `1px solid ${T.border}`, borderRadius: 7, padding: "6px 10px", cursor: "pointer", flexShrink: 0 }}>
+                        <button onClick={() => { setSelectedModules(h.modules.filter((id) => MODULE_LIST.some((m) => m.id === id))); setStep(3); }} style={{ fontSize: 11, color: T.cyan, background: "none", border: `1px solid ${T.border}`, borderRadius: 7, padding: "6px 10px", cursor: "pointer", flexShrink: 0 }}>
                           Restore
                         </button>
                       </div>

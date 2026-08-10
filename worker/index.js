@@ -5,6 +5,7 @@ import { connectIbm } from "./ibm.js";
 import { connectSnowflake } from "./snowflake.js";
 import { connectDatabricks, browseDatabricksSchemas, browseDatabricksTables } from "./databricks.js";
 import { listTestimonials, submitTestimonial } from "./testimonials.js";
+import { submitDemoRequest } from "./demoRequests.js";
 import { chatAssistant } from "./assistant.js";
 
 const HANDLERS = {
@@ -43,6 +44,18 @@ export default {
         return submitTestimonial(env, body, clientIp);
       }
       return json({ ok: false, error: "GET or POST required" }, 405);
+    }
+
+    if (url.pathname === "/api/demo-requests") {
+      if (request.method !== "POST") return json({ ok: false, error: "POST required" }, 405);
+      let body;
+      try {
+        body = await request.json();
+      } catch {
+        return json({ ok: false, error: "Invalid JSON body" }, 400);
+      }
+      const clientIp = request.headers.get("CF-Connecting-IP");
+      return submitDemoRequest(env, body, clientIp);
     }
 
     if (url.pathname === "/api/assistant") {

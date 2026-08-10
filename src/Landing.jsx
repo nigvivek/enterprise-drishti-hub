@@ -7,14 +7,11 @@ import {
 import { T, FONT_IMPORT } from "./tokens.js";
 import DataLayerDiagram from "./DataLayerDiagram.jsx";
 
-const SALES_EMAIL = "nehatyagi.in@gmail.com";
-
 const MODULES = [
   { id: "overview", tier: "Module", icon: LayoutDashboard, label: "Enterprise Compliance Dashboard", desc: "One posture score, drillable by framework, business unit, and jurisdiction — with a real, live graphical view of your connected enterprise data." },
   { id: "impact", tier: "Module", icon: GitCompareArrows, label: "Compliance Impact Analysis", desc: "AI-proposed, human-approved mapping from regulatory change to the control it actually affects — now with region-based data guideline validation against your connected sources." },
-  { id: "predictive", tier: "Module", icon: RadarIcon, label: "Predictive Regulatory Risk", desc: "Load historical data and get real statistical anomaly detection plus a transparent trend projection — not a black box." },
+  { id: "predictive", tier: "Module", icon: RadarIcon, label: "Predictive Regulatory Risk & Audit Evidence", desc: "Load historical data for real statistical anomaly detection and a transparent trend projection, alongside hash-chained audit evidence generation — merged into one module." },
   { id: "controls", tier: "Feature", icon: ClipboardCheck, label: "Continuous Control Validation", desc: "Controls tested against live system state, embedded as a feature rather than a standalone module." },
-  { id: "evidence", tier: "Feature", icon: FileStack, label: "AI-Driven Audit Evidence", desc: "Hash-chained, tamper-evident evidence packages, signed by a human before export." },
   { id: "gateway", tier: "Platform", icon: Route, label: "AI Gateway & Cost Governance", desc: "Technical infrastructure for AI routing, failover, and cost tracking — kept separate from the functional business modules." },
 ];
 
@@ -31,57 +28,6 @@ const SECURITY_FEATURES = [
   { icon: Activity, title: "Full AI output audit trail", body: "Every AI-generated finding is tagged with model version and source citations, retained indefinitely for model-risk review." },
 ];
 
-const TIERS = [
-  {
-    name: "Free Trial",
-    price: "$0",
-    period: "30 days",
-    tagline: "See your posture before you commit to anything.",
-    cta: "Start free trial",
-    highlight: false,
-    features: [
-      "All 9 modules, full functionality",
-      "1 cloud provider connector",
-      "Up to 50 controls monitored",
-      "Shared demo environment",
-      "Community support",
-      "No credit card required",
-    ],
-  },
-  {
-    name: "Standard Edition",
-    price: "Contact us",
-    period: "annual license",
-    tagline: "For a single business unit or mid-size compliance function.",
-    cta: "Talk to sales",
-    highlight: true,
-    features: [
-      "All 9 modules, full functionality",
-      "Up to 4 cloud provider connectors",
-      "Unlimited controls & evidence packages",
-      "Dedicated tenant, your choice of region",
-      "SSO/SAML, role-based access control",
-      "Email + chat support, business hours",
-    ],
-  },
-  {
-    name: "Enterprise Edition",
-    price: "Custom",
-    period: "annual license",
-    tagline: "Fully self-hosted, inside your own network.",
-    cta: "Request a demo",
-    highlight: false,
-    features: [
-      "Deployed entirely inside your VPC / on-prem",
-      "Unlimited cloud connectors & databases",
-      "Your own self-hosted AI inference layer",
-      "Custom SLA, dedicated solutions engineer",
-      "Audit-ready deployment & model governance docs",
-      "Multi-entity, multi-jurisdiction support",
-    ],
-  },
-];
-
 function NavLink({ href, children }) {
   return <a href={href} style={{ fontSize: 13.5, color: T.muted, textDecoration: "none" }}>{children}</a>;
 }
@@ -95,74 +41,79 @@ function SectionEyebrow({ children }) {
 }
 
 /* ---------------------------------------------------------------------- */
-/*  Contact / signup modal — builds a mailto: so it actually sends        */
-/*  somewhere with zero backend. Swap for a real form endpoint            */
-/*  (Formspree/EmailJS, or the backend in architecture.md) when ready.    */
+/*  Book a Demo — real on-page submission via the Worker + KV backend,     */
+/*  not a mailto: popup. Falls back to a clear "not configured" message    */
+/*  if the backend isn't set up yet, rather than pretending to succeed.    */
 /* ---------------------------------------------------------------------- */
-function ContactModal({ plan, onClose }) {
+function BookDemoForm() {
   const [form, setForm] = useState({ name: "", email: "", company: "", message: "" });
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const [status, setStatus] = useState("idle"); // idle | loading | done | error
+  const [error, setError] = useState("");
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    const subject = encodeURIComponent(`EDH — ${plan} inquiry from ${form.company || form.name || "website"}`);
-    const body = encodeURIComponent(
-      `Plan interested in: ${plan}\n\nName: ${form.name}\nWork email: ${form.email}\nCompany: ${form.company}\n\nMessage:\n${form.message}`
-    );
-    window.location.href = `mailto:${SALES_EMAIL}?subject=${subject}&body=${body}`;
-    onClose();
+    setStatus("loading");
+    setError("");
+    try {
+      const resp = await fetch("/api/demo-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const result = await resp.json();
+      if (!result.ok) {
+        setError(result.error || "Couldn't submit — try again in a moment.");
+        setStatus("error");
+        return;
+      }
+      setStatus("done");
+    } catch (err) {
+      setError("Network error — try again.");
+      setStatus("error");
+    }
   };
 
-  return (
-    <div
-      onClick={onClose}
-      style={{ position: "fixed", inset: 0, background: "#000000B3", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 20 }}
-    >
-      <div onClick={(e) => e.stopPropagation()} style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 16, padding: 28, width: "100%", maxWidth: 440 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-          <div>
-            <div style={{ fontSize: 10.5, color: T.amber, fontFamily: "IBM Plex Mono", textTransform: "uppercase", letterSpacing: "0.08em" }}>{plan}</div>
-            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 18, marginTop: 4 }}>Get in touch</div>
-          </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: T.mutedDim }}>
-            <X size={18} />
-          </button>
-        </div>
-        <p style={{ fontSize: 12, color: T.mutedDim, marginBottom: 20 }}>
-          This opens your email client with a message pre-filled to our team — nothing is sent until you hit send there.
-        </p>
-        <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {[
-            { k: "name", label: "Name", type: "text", required: true },
-            { k: "email", label: "Work email", type: "email", required: true },
-            { k: "company", label: "Company", type: "text", required: false },
-          ].map((f) => (
-            <div key={f.k}>
-              <label style={{ fontSize: 11.5, color: T.mutedDim, display: "block", marginBottom: 5 }}>{f.label}{f.required && " *"}</label>
-              <input
-                type={f.type}
-                required={f.required}
-                value={form[f.k]}
-                onChange={set(f.k)}
-                style={{ width: "100%", boxSizing: "border-box", background: T.panelAlt, border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 11px", color: T.text, fontSize: 13, fontFamily: "'Inter', sans-serif" }}
-              />
-            </div>
-          ))}
-          <div>
-            <label style={{ fontSize: 11.5, color: T.mutedDim, display: "block", marginBottom: 5 }}>What are you hoping to solve?</label>
-            <textarea
-              rows={3}
-              value={form.message}
-              onChange={set("message")}
-              style={{ width: "100%", boxSizing: "border-box", background: T.panelAlt, border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 11px", color: T.text, fontSize: 13, fontFamily: "'Inter', sans-serif", resize: "vertical" }}
-            />
-          </div>
-          <button type="submit" style={{ marginTop: 6, fontSize: 13.5, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "11px 16px", cursor: "pointer" }}>
-            Send to our team
-          </button>
-        </form>
+  if (status === "done") {
+    return (
+      <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 14, padding: 32, textAlign: "center" }}>
+        <Check size={26} color={T.green} style={{ marginBottom: 10 }} />
+        <div style={{ fontSize: 15, fontWeight: 600, color: T.text, marginBottom: 6 }}>Request received.</div>
+        <div style={{ fontSize: 13, color: T.muted }}>We'll follow up at {form.email} to schedule your walkthrough.</div>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 14, padding: 26, display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div>
+          <label style={{ fontSize: 12, color: T.mutedDim, display: "block", marginBottom: 5 }}>Name *</label>
+          <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inputStyle} />
+        </div>
+        <div>
+          <label style={{ fontSize: 12, color: T.mutedDim, display: "block", marginBottom: 5 }}>Work email *</label>
+          <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} style={inputStyle} />
+        </div>
+      </div>
+      <div>
+        <label style={{ fontSize: 12, color: T.mutedDim, display: "block", marginBottom: 5 }}>Company</label>
+        <input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} style={inputStyle} />
+      </div>
+      <div>
+        <label style={{ fontSize: 12, color: T.mutedDim, display: "block", marginBottom: 5 }}>What would you like to see in the demo?</label>
+        <textarea rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} style={{ ...inputStyle, resize: "vertical" }} />
+      </div>
+      {error && <div style={{ fontSize: 12, color: T.red, background: T.redDim, borderRadius: 8, padding: "8px 11px" }}>{error}</div>}
+      <button
+        type="submit"
+        disabled={status === "loading"}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "#FFFFFF", background: T.coral, border: "none", borderRadius: 9, padding: "12px 18px", cursor: "pointer" }}
+      >
+        {status === "loading" && <Loader2 size={15} className="edh-spin" />}
+        {status === "loading" ? "Submitting…" : "Book demo"}
+      </button>
+      <div style={{ fontSize: 10.5, color: T.mutedDim, textAlign: "center" }}>Posted directly to our team — no email client opens.</div>
+    </form>
   );
 }
 
@@ -296,13 +247,11 @@ function TestimonialsSection() {
 const inputStyle = { width: "100%", boxSizing: "border-box", background: T.panelAlt, border: `1px solid ${T.border}`, borderRadius: 7, padding: "8px 10px", color: T.text, fontSize: 12.5, fontFamily: "'Inter', sans-serif" };
 
 export default function LandingPage({ onLaunch, onSelectModule }) {
-  const [contactPlan, setContactPlan] = useState(null); // null | string
+  const coreModuleCount = MODULES.filter((m) => m.tier === "Module").length;
 
   return (
     <div style={{ background: T.bg, color: T.text, fontFamily: "'Inter', sans-serif", minHeight: "100vh" }}>
       <style>{FONT_IMPORT}{`html { scroll-behavior: smooth; } .edh-spin { animation: edh-spin 0.9s linear infinite; } @keyframes edh-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-
-      {contactPlan && <ContactModal plan={contactPlan} onClose={() => setContactPlan(null)} />}
 
       {/* ---- Nav ---- */}
       <div style={{ borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, background: `${T.bg}F2`, backdropFilter: "blur(8px)", zIndex: 20 }}>
@@ -320,7 +269,7 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
           <div style={{ display: "flex", gap: 28, alignItems: "center" }}>
             <NavLink href="#platform-principles">Platform</NavLink>
             <NavLink href="#modules">Modules</NavLink>
-            <NavLink href="#pricing">Pricing</NavLink>
+            <NavLink href="#pricing">Book a Demo</NavLink>
             <NavLink href="#security">Security</NavLink>
             <NavLink href="#about">About</NavLink>
             <NavLink href="#feedback">Feedback</NavLink>
@@ -365,7 +314,7 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
             </button>
           </div>
           <div style={{ display: "flex", gap: 26, marginTop: 40, flexWrap: "wrap" }}>
-            {[["9", "integrated modules"], ["4", "cloud providers connected"], ["0", "third-party data exposure"]].map(([n, l]) => (
+            {[[String(MODULES.length), "integrated capabilities"], ["4", "cloud providers connected"], ["0", "third-party data exposure"]].map(([n, l]) => (
               <div key={l}>
                 <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 26, color: T.text }}>{n}</div>
                 <div style={{ fontSize: 11.5, color: T.mutedDim }}>{l}</div>
@@ -401,10 +350,11 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
       {/* ---- Modules ---- */}
       <div id="modules" style={{ maxWidth: 1180, margin: "0 auto", padding: "80px 24px", scrollMarginTop: 70 }}>
         <SectionEyebrow>Platform</SectionEyebrow>
-        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: "0 0 12px" }}>Nine modules. One posture.</h2>
-        <p style={{ fontSize: 14.5, color: T.muted, maxWidth: 560, marginBottom: 40 }}>
-          Every module writes to the same control, obligation, and evidence model — so a finding in one place shows up
-          everywhere it's relevant, instead of living in a spreadsheet someone forgets to update.
+        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: "0 0 12px" }}>{coreModuleCount} modules. One posture.</h2>
+        <p style={{ fontSize: 14.5, color: T.muted, maxWidth: 620, marginBottom: 40 }}>
+          {coreModuleCount} core business modules, plus embedded features and platform infrastructure kept
+          deliberately separate — all writing to the same control, obligation, and evidence model, so a finding in
+          one place shows up everywhere it's relevant.
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
           {MODULES.map((m) => {
@@ -421,7 +371,10 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
                   </div>
                   <ArrowRight size={14} color={T.mutedDim} />
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: T.text, marginBottom: 6 }}>{m.label}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{m.label}</div>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: m.tier === "Module" ? T.coral : m.tier === "Feature" ? T.cyan : T.indigo, background: m.tier === "Module" ? T.coralDim : m.tier === "Feature" ? T.cyanDim : T.indigoDim, borderRadius: 5, padding: "2px 6px", fontFamily: "IBM Plex Mono", flexShrink: 0 }}>{m.tier}</span>
+                </div>
                 <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.55 }}>{m.desc}</div>
               </button>
             );
@@ -437,8 +390,8 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
             <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: "0 0 14px" }}>EDH sits on top of your data layer — it doesn't replace it.</h2>
             <p style={{ fontSize: 14.5, color: T.muted, lineHeight: 1.65, marginBottom: 18 }}>
               Your cloud accounts, on-prem databases, and file systems stay exactly where they are. EDH connects to
-              that existing data layer through read-only, least-privilege connectors, and every one of the nine
-              modules runs as a view on top of what's already there.
+              that existing data layer through read-only, least-privilege connectors, and every module, feature, and
+              platform capability runs as a view on top of what's already there.
             </p>
             <p style={{ fontSize: 14.5, color: T.muted, lineHeight: 1.65 }}>
               In the workspace, you connect what you want EDH to see — a cloud account, an on-prem MySQL/Oracle/
@@ -504,61 +457,15 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
         </div>
       </div>
 
-      {/* ---- Pricing ---- */}
-      <div id="pricing" style={{ maxWidth: 1180, margin: "0 auto", padding: "80px 24px", scrollMarginTop: 70 }}>
-        <SectionEyebrow>Pricing</SectionEyebrow>
-        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: "0 0 12px" }}>Start free. Scale into your own environment.</h2>
-        <p style={{ fontSize: 14.5, color: T.muted, maxWidth: 560, marginBottom: 40 }}>
-          Every tier runs the same nine modules. What changes is where it's deployed, how much of your environment it
-          watches, and what kind of support sits behind it.
+      {/* ---- Book a Demo ---- */}
+      <div id="pricing" style={{ maxWidth: 760, margin: "0 auto", padding: "80px 24px", scrollMarginTop: 70 }}>
+        <SectionEyebrow>Get started</SectionEyebrow>
+        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 30, margin: "0 0 12px" }}>Book a demo.</h2>
+        <p style={{ fontSize: 14.5, color: T.muted, maxWidth: 560, marginBottom: 32 }}>
+          Tell us a bit about your team and we'll follow up to set up a walkthrough tailored to your entities,
+          jurisdictions, and data footprint. This goes straight to our team — no email client opens.
         </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
-          {TIERS.map((tier) => (
-            <div
-              key={tier.name}
-              style={{
-                position: "relative", background: tier.highlight ? T.panel : T.panelAlt,
-                border: `1px solid ${tier.highlight ? T.amber : T.border}`, borderRadius: 16, padding: 26,
-                display: "flex", flexDirection: "column",
-              }}
-            >
-              {tier.highlight && (
-                <div style={{ position: "absolute", top: -12, left: 24, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: T.text, background: T.amber, padding: "3px 10px", borderRadius: 999, fontFamily: "IBM Plex Mono" }}>
-                  Most common
-                </div>
-              )}
-              <div style={{ fontSize: 15, fontWeight: 600, color: T.text, marginTop: tier.highlight ? 6 : 0 }}>{tier.name}</div>
-              <div style={{ fontSize: 12, color: T.mutedDim, marginTop: 4, marginBottom: 18 }}>{tier.tagline}</div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 7, marginBottom: 22 }}>
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 30, color: T.text }}>{tier.price}</span>
-                <span style={{ fontSize: 11.5, color: T.mutedDim }}>{tier.period}</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1, marginBottom: 24 }}>
-                {tier.features.map((f) => (
-                  <div key={f} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12.5, color: T.muted }}>
-                    <Check size={14} color={tier.highlight ? T.coral : T.cyan} style={{ flexShrink: 0, marginTop: 1 }} />
-                    {f}
-                  </div>
-                ))}
-              </div>
-              <button
-                onClick={() => setContactPlan(tier.name)}
-                style={{
-                  fontSize: 13, fontWeight: 600, borderRadius: 9, padding: "11px 16px", cursor: "pointer",
-                  border: tier.highlight ? "none" : `1px solid ${T.borderLight}`,
-                  background: tier.highlight ? T.coral : "transparent",
-                  color: tier.highlight ? "#FFFFFF" : T.text,
-                }}
-              >
-                {tier.cta}
-              </button>
-            </div>
-          ))}
-        </div>
-        <div style={{ fontSize: 11.5, color: T.mutedDim, marginTop: 20 }}>
-          Standard and Enterprise pricing is customized to entity count, jurisdiction coverage, and cloud footprint —
-          every "talk to sales" button above opens a short form that emails our team directly.
-        </div>
+        <BookDemoForm />
       </div>
 
       {/* ---- About ---- */}
@@ -622,7 +529,7 @@ export default function LandingPage({ onLaunch, onSelectModule }) {
           <div style={{ display: "flex", gap: 18 }}>
             <span style={{ fontSize: 11.5, color: T.mutedDim }}>Privacy</span>
             <a href="#security" style={{ fontSize: 11.5, color: T.mutedDim, textDecoration: "none" }}>Security</a>
-            <button onClick={() => setContactPlan("General inquiry")} style={{ fontSize: 11.5, color: T.mutedDim, background: "none", border: "none", cursor: "pointer", padding: 0 }}>Contact</button>
+            <a href="#pricing" style={{ fontSize: 11.5, color: T.mutedDim, textDecoration: "none" }}>Contact</a>
           </div>
         </div>
       </div>

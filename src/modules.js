@@ -1,19 +1,19 @@
 import {
-  LayoutDashboard, GitCompareArrows, ClipboardCheck, FileStack,
+  LayoutDashboard, GitCompareArrows, ClipboardCheck,
   Radar as RadarIcon, Route,
 } from "lucide-react";
 
 // tier: "module" = core functional business module
 //       "feature" = still fully accessible, but embedded/linked rather than a
 //                   standalone functional module (per explicit product decision)
-//       "platform" = technical/operational infrastructure, kept separate from
-//                    the functional-business module list
+//       "platform" = technical/operational infrastructure — rendered as a
+//                    pinned top-of-sidebar item, not part of the tiered
+//                    Modules/Features grouping (also per explicit decision)
 export const MODULE_LIST = [
   { id: "overview", label: "Enterprise Compliance Dashboard", icon: LayoutDashboard, tier: "module", tierLabel: "Module" },
   { id: "impact", label: "Compliance Impact Analysis", icon: GitCompareArrows, tier: "module", tierLabel: "Module" },
-  { id: "predictive", label: "Predictive Regulatory Risk", icon: RadarIcon, tier: "module", tierLabel: "Module" },
+  { id: "predictive", label: "Predictive Regulatory Risk & Audit Evidence", icon: RadarIcon, tier: "module", tierLabel: "Module" },
   { id: "controls", label: "Continuous Control Validation", icon: ClipboardCheck, tier: "feature", tierLabel: "Feature" },
-  { id: "evidence", label: "Audit Evidence Generation", icon: FileStack, tier: "feature", tierLabel: "Feature" },
   { id: "gateway", label: "AI Gateway & Cost Governance", icon: Route, tier: "platform", tierLabel: "Platform" },
 ];
 

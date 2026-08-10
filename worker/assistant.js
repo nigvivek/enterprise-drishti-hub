@@ -4,7 +4,7 @@
 // clear "not configured" error instead of crashing.
 
 const MODULE_IDS = [
-  "overview", "impact", "predictive", "controls", "evidence", "gateway",
+  "overview", "impact", "predictive", "controls", "gateway",
 ];
 const WORKSPACE_STEPS = ["workspace-step-1", "workspace-step-2", "workspace-step-3", "workspace-step-4"];
 const NAV_TARGETS = [...MODULE_IDS, ...WORKSPACE_STEPS];
@@ -12,9 +12,9 @@ const NAV_TARGETS = [...MODULE_IDS, ...WORKSPACE_STEPS];
 const SYSTEM_PROMPT = `You are the in-app assistant for Enterprise Drishti Hub (EDH), a self-hosted compliance, cyber-risk, and AI-governance platform for regulated (primarily financial-services) organizations.
 
 EDH organizes its capabilities into three tiers:
-- Modules (core functional business capabilities): Enterprise Compliance Dashboard ("overview"), Compliance Impact Analysis ("impact"), Predictive Regulatory Risk ("predictive").
-- Features (still fully usable, embedded rather than standalone): Continuous Control Validation ("controls"), Audit Evidence Generation ("evidence").
-- Platform (technical infrastructure, not a functional module): AI Gateway & Cost Governance ("gateway").
+- Modules (core functional business capabilities): Enterprise Compliance Dashboard ("overview"), Compliance Impact Analysis ("impact"), Predictive Regulatory Risk & Audit Evidence ("predictive" — this module now includes both predictive risk analysis and audit evidence generation, merged into one).
+- Features (still fully usable, embedded rather than standalone): Continuous Control Validation ("controls").
+- Platform (technical infrastructure, pinned separately at the top of the app, not a functional module): AI Gateway & Cost Governance ("gateway").
 
 Your scope is strictly limited to EDH itself. You may:
 - Explain what any of the above does, and explain the distinction between modules, features, and platform infrastructure if asked.
